@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calisthénie, Psychologie & Développement personnel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #111;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #ddd;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      font-size: 16px;
+    }
+
+    nav a {
+      margin-left: 16px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .hero {
+      margin-top: 16px;
+      margin-bottom: 32px;
+      padding: 24px 20px;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+
+    .hero h1 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 26px;
+    }
+
+    .hero p {
+      margin: 0 0 8px;
+      line-height: 1.5;
+    }
+
+    .tagline {
+      font-size: 14px;
+      color: #555;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #111;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .layout-two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+      gap: 20px;
+      margin-top: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 800px) {
+      .layout-two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 18px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .card p {
+      margin: 0 0 8px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .pill-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .pill-list li {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      background: #fafafa;
+    }
+
+    .post-preview {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #ddd;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .post-preview a {
+      text-decoration: none;
+      color: #111;
+      font-weight: 600;
+    }
+
+    .post-preview a:hover {
+      text-decoration: underline;
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">Calisthénie & Esprit</div>
+    <nav>
+      <a href="index.html">Accueil</a>
+      <a href="entrainements.html">Programmes & progression</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- HERO -->
+    <section class="hero">
+      <h1><strong>Calisthénie, psychologie & développement personnel</strong></h1>
+
+      <p>
+        Ce site est conçu par un pratiquant de calisthénie avec plus de dix ans d’expérience,
+        passionné aussi par la <strong>psychologie</strong>, la <strong>santé</strong>, et la compréhension du
+        <strong>comportement humain</strong>.
+      </p>
+
+      <p class="tagline">
+        L’objectif : proposer des <strong>entraînements simples et concrets</strong>, mais aussi une
+        <strong>analyse honnête et nuancée</strong> de ce que la pratique physique transforme réellement —
+        dans le <strong>corps</strong> et dans <strong>l’esprit</strong>.
+      </p>
+
+      <a class="btn-primary" href="entrainements.html">
+        Voir les programmes d’entraînement
+      </a>
+    </section>
+
+    <!-- ESprit & approche -->
+    <div class="layout-two-col">
+
+      <section class="card">
+        <h2><strong>Esprit du site</strong></h2>
+
+        <p>
+          La <strong>calisthénie</strong> n’est pas qu’une suite d’exercices : c’est un cadre pour
+          explorer sa <strong>force</strong>, mieux se connaître et mettre en lumière nos comportements
+          face à la <strong>difficulté</strong>.
+        </p>
+
+        <p>
+          Ici, l’idée n’est pas de te vendre un programme parfait, mais de t’offrir :
+        </p>
+
+        <ul>
+          <li>des <strong>programmes structurés</strong> pour trois niveaux ;</li>
+          <li>des repères pour suivre ta <strong>progression</strong> ;</li>
+          <li>des réflexions <strong>psychologiques</strong> sur la discipline, l’identité, la motivation ;</li>
+          <li>une vision <strong>réaliste</strong> des bénéfices du mouvement.</li>
+        </ul>
+      </section>
+
+      <aside class="card">
+        <h3>Ce que tu trouveras ici</h3>
+
+        <ul class="pill-list">
+          <li><strong>Entraînement structuré (débutant → avancé)</strong></li>
+          <li><strong>Journal de progression</strong></li>
+          <li><strong>Réflexions psychologiques</strong></li>
+        </ul>
+
+        <p style="margin-top: 10px;">
+          Tu peux choisir un programme, documenter ton évolution
+          ou explorer des textes plus introspectifs.
+        </p>
+      </aside>
+
+    </div>
+
+    <!-- OBJECTIF DU SITE -->
+    <section>
+      <h2 class="section-title"><strong>Objectif du site</strong></h2>
+
+      <p>
+        Le but n’est pas d’imposer une routine figée, mais de donner des repères clairs
+        pour comprendre <strong>ce que tu fais</strong> et <strong>pourquoi</strong> tu le fais.
+      </p>
+
+      <p>
+        Chaque exercice a un <strong>sens</strong>, chaque progression raconte quelque chose.
+      </p>
+
+      <ul>
+        <li>des programmes simples ;</li>
+        <li>des analyses des <strong>bénéfices physiques</strong> ;</li>
+        <li>une lecture <strong>psychologique</strong> de la progression et des blocages.</li>
+      </ul>
+    </section>
+
+    <!-- RÉFLEXIONS -->
+    <section>
+      <h2 class="section-title"><strong>Réflexions & analyses</strong></h2>
+
+      <p>
+        À côté des entraînements, je partage aussi des textes plus personnels : des idées,
+        des analyses, des observations sur la <strong>discipline</strong>,
+        la <strong>perception du corps</strong>, la <strong>relation à l’échec</strong>
+        et la <strong>construction de soi</strong>.
+      </p>
+
+      <div class="card">
+        <h3>Thèmes abordés</h3>
+
+        <div class="post-preview">
+          <a href="reflexion-miroir.html" style="font-weight:500;"><strong>– La calisthénie comme miroir</strong></a><br />
+          <span>
+            Comment la difficulté d’un mouvement révèle notre rapport à <strong>l’échec</strong> et à
+            la <strong>patience</strong>.
+          </span>
+        </div>
+
+        <div class="post-preview">
+          <a href="reflexion-progression-lente.html" style="font-weight:500;"><strong>– Progression lente, confiance solide</strong></a><br />
+          <span>
+            Pourquoi avancer lentement peut construire une <strong>confiance</strong> plus profonde.
+          </span>
+        </div>
+
+        <div class="post-preview">
+          <a href="reflexion-corps-comparaison.html" style="font-weight:500;"><strong>– Corps, image et comparaison</strong></a><br />
+          <span>
+            Réconcilier son regard avec son propre corps en sortant de la <strong>comparaison</strong>.
+          </span>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

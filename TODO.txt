@@ -1,0 +1,4 @@
+- Ecrire du contenu textuel 
+- Ajouter des images
+- Ajouter des couleurs
+- Enrichir la structure (ajouter des pages, fonctionnalités, tableaux de résultats par exemple)

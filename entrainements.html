@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Programmes & progression – Calisthénie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #111;
+    }
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #ddd;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      font-size: 16px;
+    }
+
+    nav a {
+      margin-left: 16px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+      padding: 20px 18px;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .hero h1 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .hero p {
+      margin: 0 0 8px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    /* ENTRAÎNEMENTS */
+
+    .workouts {
+      margin-bottom: 32px;
+    }
+
+    .workouts h2 {
+      margin-bottom: 8px;
+      text-align: left;
+      font-size: 20px;
+    }
+
+    .workouts p {
+      margin-bottom: 16px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .workout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .workout-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .workout-card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .workout-card ul {
+      padding-left: 20px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .workout-card p {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .workout-level {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* JOURNAL D'ÉVOLUTION */
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .nav-posts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-bottom: 16px;
+      margin-top: 10px;
+    }
+
+    .nav-posts button {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .nav-posts button.active {
+      border-color: #000;
+      font-weight: 600;
+    }
+
+    .post {
+      display: none;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      margin-bottom: 30px;
+    }
+
+    .post h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .post textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .post-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .post-actions button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-save {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-reset {
+      background: #eee;
+    }
+
+    .info {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Calisthénie & Esprit</div>
+    <nav>
+      <a href="index.html">Accueil</a>
+      <a href="entrainements.html">Programmes & progression</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- INTRO DE LA PAGE ENTRAÎNEMENTS -->
+    <section class="hero">
+      <h1>Programmes & journal de progression</h1>
+      <p>
+        Cette page présente trois grandes classes de niveaux – <strong>débutant</strong>, <strong>intermédiaire</strong>
+        et <strong>avancé / pro</strong> – avec des exemples de structures d’entraînement.
+      </p>
+      <p>
+        L’idée n’est pas de “finir parfaitement” un programme, mais de :
+      </p>
+      <ul style="margin-top: 4px; padding-left: 18px; font-size: 14px;">
+        <li>choisir un niveau qui te parle (ou en tester plusieurs),</li>
+        <li>observer comment ton corps et ton mental réagissent,</li>
+        <li>documenter ta progression et tes ressentis au fil des séances.</li>
+      </ul>
+      <p style="margin-top: 8px;">
+        Plus tard, ces structures pourront être enrichies, adaptées, ou connectées à une API
+        permettant de générer des séances plus personnalisées.
+      </p>
+    </section>
+
+    <!-- PROGRAMMES PAR NIVEAU -->
+    <section class="workouts">
+      <h2>Programmes par niveau</h2>
+      <p>
+        Voici une base de travail. Tu peux t’en servir comme référence, comme point de départ,
+        ou comme cadre pour organiser tes propres séances.
+      </p>
+
+      <div class="workout-grid">
+        <!-- Débutant -->
+        <article class="workout-card">
+          <div class="workout-level">Débutant</div>
+          <h3>Routine full body simple</h3>
+          <ul>
+            <li>3 × 8–10 pompes inclinées (mains sur table / canapé)</li>
+            <li>3 × 6–8 tractions australiennes (sous une table solide / barre basse)</li>
+            <li>3 × 10 squats au poids du corps</li>
+            <li>3 × 20 s gainage planche</li>
+          </ul>
+          <p>
+            Objectif : apprendre les bases, sentir les mouvements, construire une première régularité
+            sans écraser le système nerveux.
+          </p>
+        </article>
+
+        <!-- Intermédiaire -->
+        <article class="workout-card">
+          <div class="workout-level">Intermédiaire</div>
+          <h3>Routine traction / push</h3>
+          <ul>
+            <li>4 × 6–8 tractions strictes</li>
+            <li>4 × 8–12 pompes classiques</li>
+            <li>3 × 8 dips sur barres ou chaises</li>
+            <li>3 × 30 s hollow body</li>
+          </ul>
+          <p>
+            Objectif : consolider la force de base et préparer le terrain pour les skills
+            (muscle-up, front lever, variantes plus avancées).
+          </p>
+        </article>
+
+        <!-- Avancé / Pro -->
+        <article class="workout-card">
+          <div class="workout-level">Avancé / Pro</div>
+          <h3>Session skills & explosivité</h3>
+          <ul>
+            <li>Muscle-up : 5–8 séries de variations (explosives, assistées, négatives)</li>
+            <li>Front lever : 5 × 10–15 s sur ta progression actuelle (tuck, advanced tuck, straddle…)</li>
+            <li>Handstand : 10–15 min de pratique technique (mur + freestanding)</li>
+            <li>Finisher explosif : 3 × 10 pompes claquées / tractions explosives</li>
+          </ul>
+          <p>
+            Objectif : développer les skills, l’explosivité et la capacité à rester concentré
+            sur des efforts techniquement exigeants.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- JOURNAL D'ÉVOLUTION -->
+    <section>
+      <h2 class="section-title">Journal d’évolution</h2>
+      <p style="font-size: 14px; color:#555;">
+        Utilise cet espace comme un carnet personnel : note ce que tu observes en toi
+        selon le niveau que tu explores (débutant, intermédiaire, avancé).
+        C’est stocké uniquement dans ton navigateur.
+      </p>
+
+      <!-- Boutons de navigation -->
+      <div class="nav-posts">
+        <button onclick="showPost(1)" id="btn-post-1">Journal – Niveau débutant</button>
+        <button onclick="showPost(2)" id="btn-post-2">Journal – Niveau intermédiaire</button>
+        <button onclick="showPost(3)" id="btn-post-3">Journal – Niveau avancé / pro</button>
+        <button onclick="showPost(4)" id="btn-post-4">Notes libres</button>
+      </div>
+
+      <!-- Post 1 -->
+      <section class="post" id="post-1">
+        <h3>Journal – Niveau débutant</h3>
+        <textarea id="textarea-1" placeholder="Comment ton corps réagit-il aux bases ? Ressenti sur la respiration, la technique, la confiance, la régularité…"></textarea>
+        <div class="post-actions">
+          <button class="btn-reset" onclick="resetPost(1)">Réinitialiser</button>
+          <button class="btn-save" onclick="savePost(1)">Enregistrer</button>
+        </div>
+        <div class="info" id="info-1"></div>
+      </section>
+
+      <!-- Post 2 -->
+      <section class="post" id="post-2">
+        <h3>Journal – Niveau intermédiaire</h3>
+        <textarea id="textarea-2" placeholder="Qu’est-ce qui devient plus facile ? Où sont les blocages ? Comment évolue ta motivation, ton rapport aux séances…"></textarea>
+        <div class="post-actions">
+          <button class="btn-reset" onclick="resetPost(2)">Réinitialiser</button>
+          <button class="btn-save" onclick="savePost(2)">Enregistrer</button>
+        </div>
+        <div class="info" id="info-2"></div>
+      </section>
+
+      <!-- Post 3 -->
+      <section class="post" id="post-3">
+        <h3>Journal – Niveau avancé / pro</h3>
+        <textarea id="textarea-3" placeholder="Quelles sont les difficultés mentales liées aux skills ? Frustration, perfectionnisme, ego, gestion de la fatigue…"></textarea>
+        <div class="post-actions">
+          <button class="btn-reset" onclick="resetPost(3)">Réinitialiser</button>
+          <button class="btn-save" onclick="savePost(3)">Enregistrer</button>
+        </div>
+        <div class="info" id="info-3"></div>
+      </section>
+
+      <!-- Post 4 -->
+      <section class="post" id="post-4">
+        <h3>Notes libres</h3>
+        <textarea id="textarea-4" placeholder="Idées, objectifs, prises de conscience, scripts de contenu, choses que tu veux garder en mémoire…"></textarea>
+        <div class="post-actions">
+          <button class="btn-reset" onclick="resetPost(4)">Réinitialiser</button>
+          <button class="btn-save" onclick="savePost(4)">Enregistrer</button>
+        </div>
+        <div class="info" id="info-4"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    function showPost(id) {
+      for (let i = 1; i <= 4; i++) {
+        const post = document.getElementById("post-" + i);
+        const btn = document.getElementById("btn-post-" + i);
+        if (i === id) {
+          post.style.display = "block";
+          btn.classList.add("active");
+        } else {
+          post.style.display = "none";
+          btn.classList.remove("active");
+        }
+      }
+    }
+
+    function savePost(id) {
+      const textarea = document.getElementById("textarea-" + id);
+      const info = document.getElementById("info-" + id);
+      const key = "journal-content-" + id;
+
+      localStorage.setItem(key, textarea.value);
+      const now = new Date().toLocaleString();
+      info.textContent = "Enregistré le " + now + " (stocké dans ce navigateur uniquement)";
+    }
+
+    function resetPost(id) {
+      const textarea = document.getElementById("textarea-" + id);
+      const info = document.getElementById("info-" + id);
+      const key = "journal-content-" + id;
+
+      textarea.value = "";
+      localStorage.removeItem(key);
+      info.textContent = "";
+    }
+
+    function loadPosts() {
+      for (let i = 1; i <= 4; i++) {
+        const textarea = document.getElementById("textarea-" + i);
+        const info = document.getElementById("info-" + i);
+        const key = "journal-content-" + i;
+
+        const saved = localStorage.getItem(key);
+        if (saved !== null) {
+          textarea.value = saved;
+          info.textContent = "Contenu récupéré depuis ce navigateur.";
+        }
+      }
+      showPost(1);
+    }
+
+    window.addEventListener("DOMContentLoaded", loadPosts);
+  </script>
+</body>
+</html>
