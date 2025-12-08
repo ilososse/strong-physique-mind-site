@@ -65,7 +65,7 @@
       font-size: 14px;
     }
 
-    /* ENTRAÎNEMENTS */
+    /* PROGRAMMES */
 
     .workouts {
       margin-bottom: 32px;
@@ -73,7 +73,6 @@
 
     .workouts h2 {
       margin-bottom: 8px;
-      text-align: left;
       font-size: 20px;
     }
 
@@ -124,12 +123,119 @@
       letter-spacing: 0.05em;
     }
 
-    /* JOURNAL D'ÉVOLUTION */
-
     .section-title {
       font-size: 18px;
       margin-bottom: 8px;
     }
+
+    /* JOURNAL STRUCTURÉ */
+
+    .structured-log {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .structured-log-header {
+      margin-bottom: 12px;
+    }
+
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .session-meta label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-meta input,
+    .session-meta select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+
+    .session-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+
+    table.session-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .session-table th,
+    .session-table td {
+      border: 1px solid #e2e2e2;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .session-table th {
+      background: #fafafa;
+      font-weight: 500;
+    }
+
+    .session-table input[type="text"],
+    .session-table input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-secondary {
+      background: #eee;
+    }
+
+    .btn-primary {
+      background: #000;
+      color: #fff;
+    }
+
+    .remove-row-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .info {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    /* JOURNAL LIBRE */
 
     .nav-posts {
       display: flex;
@@ -203,12 +309,6 @@
     .btn-reset {
       background: #eee;
     }
-
-    .info {
-      margin-top: 8px;
-      font-size: 11px;
-      color: #555;
-    }
   </style>
 </head>
 <body>
@@ -221,7 +321,7 @@
   </header>
 
   <main>
-    <!-- INTRO DE LA PAGE ENTRAÎNEMENTS -->
+    <!-- INTRO -->
     <section class="hero">
       <h1>Programmes & journal de progression</h1>
       <p>
@@ -233,8 +333,16 @@
       </p>
       <ul style="margin-top: 4px; padding-left: 18px; font-size: 14px;">
         <li>choisir un niveau qui te parle (ou en tester plusieurs),</li>
-        <li>observer comment ton corps et ton mental réagissent,</li>
+        <li>observer comment ton corps s'adapte aux exercices,</li>
         <li>documenter ta progression et tes ressentis au fil des séances.</li>
+        <li>il est extrêmement important de ne pas oublier de réaliser un échauffement des msucles avant d'attaquer les exercices.</li>
+        <li> je t'invite à lire 
+  <a href="echauffement.html" target="_blank" style="text-decoration:none; color:#111; font-weight:500;">
+    mon article
+  </a> 
+  (en cours de rédaction) sur l'échauffement présentant un exemple d'exercices préparant à l'effort physique.
+</li>
+
       </ul>
       <p style="margin-top: 8px;">
         Plus tard, ces structures pourront être enrichies, adaptées, ou connectées à une API
@@ -242,7 +350,7 @@
       </p>
     </section>
 
-    <!-- PROGRAMMES PAR NIVEAU -->
+    <!-- PROGRAMMES -->
     <section class="workouts">
       <h2>Programmes par niveau</h2>
       <p>
@@ -301,16 +409,77 @@
       </div>
     </section>
 
-    <!-- JOURNAL D'ÉVOLUTION -->
+    <!-- JOURNAL STRUCTURÉ (TABLEAU) -->
+<section class="structured-log">
+  <div class="structured-log-header">
+    <h2 class="section-title">Journal structuré de séance</h2>
+    <p style="font-size: 14px; color:#555;">
+      Utilise ce tableau pour consigner une séance précise : date, niveau, durée, exercices,
+      éventuel lest, répétitions par série et ressenti global. Les données sont stockées dans ce navigateur.
+    </p>
+  </div>
+
+  <div class="session-meta">
+    <label>
+      Date de la séance
+      <input type="date" id="session-date" />
+    </label>
+    <label>
+      Niveau
+      <select id="session-level">
+        <option value="Débutant">Débutant</option>
+        <option value="Intermédiaire">Intermédiaire</option>
+        <option value="Avancé / Pro">Avancé / Pro</option>
+      </select>
+    </label>
+    <label>
+      Durée (minutes)
+      <input type="number" id="session-duration" min="0" step="1" />
+    </label>
+  </div>
+
+  <div class="session-table-wrapper">
+    <table class="session-table">
+      <thead>
+        <tr>
+          <th>Exercice</th>
+          <th>Lest (kg)</th>
+          <th>Série 1</th>
+          <th>Série 2</th>
+          <th>Série 3</th>
+          <th>Série 4</th>
+          <th>Ressenti</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="session-rows">
+        <!-- lignes ajoutées en JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="session-actions">
+    <button class="btn btn-secondary" type="button" onclick="addExerciseRow()">
+      Ajouter un exercice
+    </button>
+    <button class="btn btn-primary" type="button" onclick="saveStructuredSession()">
+      Enregistrer la séance
+    </button>
+  </div>
+
+  <div class="info" id="session-save-info"></div>
+</section>
+
+
+    <!-- JOURNAL LIBRE -->
     <section>
-      <h2 class="section-title">Journal d’évolution</h2>
+      <h2 class="section-title">Journal d’évolution libre</h2>
       <p style="font-size: 14px; color:#555;">
         Utilise cet espace comme un carnet personnel : note ce que tu observes en toi
         selon le niveau que tu explores (débutant, intermédiaire, avancé).
         C’est stocké uniquement dans ton navigateur.
       </p>
 
-      <!-- Boutons de navigation -->
       <div class="nav-posts">
         <button onclick="showPost(1)" id="btn-post-1">Journal – Niveau débutant</button>
         <button onclick="showPost(2)" id="btn-post-2">Journal – Niveau intermédiaire</button>
@@ -318,7 +487,6 @@
         <button onclick="showPost(4)" id="btn-post-4">Notes libres</button>
       </div>
 
-      <!-- Post 1 -->
       <section class="post" id="post-1">
         <h3>Journal – Niveau débutant</h3>
         <textarea id="textarea-1" placeholder="Comment ton corps réagit-il aux bases ? Ressenti sur la respiration, la technique, la confiance, la régularité…"></textarea>
@@ -329,7 +497,6 @@
         <div class="info" id="info-1"></div>
       </section>
 
-      <!-- Post 2 -->
       <section class="post" id="post-2">
         <h3>Journal – Niveau intermédiaire</h3>
         <textarea id="textarea-2" placeholder="Qu’est-ce qui devient plus facile ? Où sont les blocages ? Comment évolue ta motivation, ton rapport aux séances…"></textarea>
@@ -340,7 +507,6 @@
         <div class="info" id="info-2"></div>
       </section>
 
-      <!-- Post 3 -->
       <section class="post" id="post-3">
         <h3>Journal – Niveau avancé / pro</h3>
         <textarea id="textarea-3" placeholder="Quelles sont les difficultés mentales liées aux skills ? Frustration, perfectionnisme, ego, gestion de la fatigue…"></textarea>
@@ -351,7 +517,6 @@
         <div class="info" id="info-3"></div>
       </section>
 
-      <!-- Post 4 -->
       <section class="post" id="post-4">
         <h3>Notes libres</h3>
         <textarea id="textarea-4" placeholder="Idées, objectifs, prises de conscience, scripts de contenu, choses que tu veux garder en mémoire…"></textarea>
@@ -365,6 +530,107 @@
   </main>
 
   <script>
+    /* ---------- JOURNAL STRUCTURÉ ---------- */
+
+function createExerciseRow(data) {
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>
+      <select class="ex-name">
+        <option value="">– Sélectionne –</option>
+        <option value="Tractions">Tractions</option>
+        <option value="Pompes">Pompes</option>
+        <option value="Dips">Dips</option>
+        <option value="Planche">Planche</option>
+        <option value="Handstand">Handstand</option>
+        <option value="Handstand Push Up">Handstand Push Up</option>
+        <option value="Human Flag">Human Flag</option>
+        <option value="Front Lever">Front Lever</option>
+        <option value="Muscle Up">Muscle Up</option>
+      </select>
+    </td>
+    <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
+    <td><input type="number" class="ex-s1" min="0" step="1" value="${data?.s1 || ""}"></td>
+    <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
+    <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
+    <td><input type="number" class="ex-s4" min="0" step="1" value="${data?.s4 || ""}"></td>
+    <td><input type="text" class="ex-ressenti" placeholder="Ressenti global de l'exercice" value="${data?.ressenti || ""}"></td>
+    <td><button class="remove-row-btn" type="button" title="Supprimer" onclick="removeExerciseRow(this)">×</button></td>
+  `;
+
+  // si des données existent (plus tard, quand tu voudras pré-remplir)
+  if (data?.name) {
+    const select = tr.querySelector(".ex-name");
+    if (select) select.value = data.name;
+  }
+
+  return tr;
+}
+
+
+    function addExerciseRow(prefillData) {
+      const tbody = document.getElementById("session-rows");
+      tbody.appendChild(createExerciseRow(prefillData));
+    }
+
+    function removeExerciseRow(btn) {
+      const tr = btn.closest("tr");
+      if (tr) tr.remove();
+    }
+
+function saveStructuredSession() {
+  const dateInput = document.getElementById("session-date");
+  const levelSelect = document.getElementById("session-level");
+  const durationInput = document.getElementById("session-duration");
+  const rows = document.querySelectorAll("#session-rows tr");
+  const info = document.getElementById("session-save-info");
+
+  if (!dateInput.value) {
+    const today = new Date();
+    dateInput.value = today.toISOString().slice(0, 10);
+  }
+
+  const session = {
+    date: dateInput.value,
+    level: levelSelect.value,
+    duration: durationInput.value || "",
+    exercises: []
+  };
+
+  rows.forEach(row => {
+    const name = row.querySelector(".ex-name")?.value || "";
+    const weight = row.querySelector(".ex-weight")?.value || "0";
+    const s1 = row.querySelector(".ex-s1").value;
+    const s2 = row.querySelector(".ex-s2").value;
+    const s3 = row.querySelector(".ex-s3").value;
+    const s4 = row.querySelector(".ex-s4").value;
+    const ressenti = row.querySelector(".ex-ressenti").value.trim();
+
+    if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
+      session.exercises.push({ name, weight, s1, s2, s3, s4, ressenti });
+    }
+  });
+
+  const key = "structured-sessions";
+  const existingRaw = localStorage.getItem(key);
+  const existing = existingRaw ? JSON.parse(existingRaw) : [];
+  existing.push(session);
+  localStorage.setItem(key, JSON.stringify(existing));
+
+  const d = new Date(session.date);
+  const formatted = d.toLocaleDateString();
+  info.textContent = `Séance enregistrée pour le ${formatted} (stockée dans ce navigateur).`;
+}
+
+
+    function initStructuredLog() {
+      // au moins une ligne vide par défaut
+      addExerciseRow();
+    }
+
+    /* ---------- JOURNAL LIBRE (NOTES) ---------- */
+
     function showPost(id) {
       for (let i = 1; i <= 4; i++) {
         const post = document.getElementById("post-" + i);
@@ -414,7 +680,10 @@
       showPost(1);
     }
 
-    window.addEventListener("DOMContentLoaded", loadPosts);
+    window.addEventListener("DOMContentLoaded", () => {
+      initStructuredLog();
+      loadPosts();
+    });
   </script>
 </body>
 </html>
