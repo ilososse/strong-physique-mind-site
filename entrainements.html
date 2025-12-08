@@ -235,6 +235,37 @@
       color: #555;
     }
 
+        .sessions-history {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+    }
+
+    .session-card {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fafafa;
+      font-size: 12px;
+    }
+
+    .session-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .session-card-header span.label {
+      font-weight: 600;
+    }
+
+    .session-card-exos {
+      margin: 0;
+      padding-left: 16px;
+    }
+
     /* JOURNAL LIBRE */
 
     .nav-posts {
@@ -309,6 +340,22 @@
     .btn-reset {
       background: #eee;
     }
+
+    .delete-session-btn {
+  margin-top: 8px;
+  background: #ffdddd;
+  color: #900;
+  border: 1px solid #cc0000;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.delete-session-btn:hover {
+  background: #ffcccc;
+}
+
   </style>
 </head>
 <body>
@@ -452,6 +499,7 @@
           <th></th>
         </tr>
       </thead>
+
       <tbody id="session-rows">
         <!-- lignes ajoutées en JS -->
       </tbody>
@@ -468,6 +516,14 @@
   </div>
 
   <div class="info" id="session-save-info"></div>
+        <div class="sessions-history">
+        <h3 style="font-size: 15px; margin: 6px 0 4px;">Historique des séances</h3>
+        <p style="font-size: 12px; color:#555; margin:0 0 6px;">
+          Les dernières séances enregistrées s’affichent ci-dessous (stockées uniquement dans ce navigateur).
+        </p>
+        <div id="sessions-history"></div>
+      </div>
+
 </section>
 
 
@@ -531,7 +587,6 @@
 
   <script>
     /* ---------- JOURNAL STRUCTURÉ ---------- */
-
 function createExerciseRow(data) {
   const tr = document.createElement("tr");
 
@@ -556,18 +611,17 @@ function createExerciseRow(data) {
     <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
     <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
     <td><input type="number" class="ex-s4" min="0" step="1" value="${data?.s4 || ""}"></td>
-    <td><input type="text" class="ex-ressenti" placeholder="Ressenti global de l'exercice" value="${data?.ressenti || ""}"></td>
-    <td><button class="remove-row-btn" type="button" title="Supprimer" onclick="removeExerciseRow(this)">×</button></td>
+    <td><input type="text" class="ex-ressenti" placeholder="Ressenti global" value="${data?.ressenti || ""}"></td>
+    <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
   `;
 
-  // si des données existent (plus tard, quand tu voudras pré-remplir)
   if (data?.name) {
-    const select = tr.querySelector(".ex-name");
-    if (select) select.value = data.name;
+    tr.querySelector(".ex-name").value = data.name;
   }
 
   return tr;
 }
+
 
 
     function addExerciseRow(prefillData) {
@@ -599,29 +653,110 @@ function saveStructuredSession() {
     exercises: []
   };
 
-  rows.forEach(row => {
-    const name = row.querySelector(".ex-name")?.value || "";
-    const weight = row.querySelector(".ex-weight")?.value || "0";
-    const s1 = row.querySelector(".ex-s1").value;
-    const s2 = row.querySelector(".ex-s2").value;
-    const s3 = row.querySelector(".ex-s3").value;
-    const s4 = row.querySelector(".ex-s4").value;
-    const ressenti = row.querySelector(".ex-ressenti").value.trim();
+        rows.forEach(row => {
+        const name = row.querySelector(".ex-name")?.value || "";
+        const weight = row.querySelector(".ex-weight")?.value || "0";
+        const s1 = row.querySelector(".ex-s1").value;
+        const s2 = row.querySelector(".ex-s2").value;
+        const s3 = row.querySelector(".ex-s3").value;
+        const s4 = row.querySelector(".ex-s4").value;
+        const ressenti = row.querySelector(".ex-ressenti").value.trim();
 
-    if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
-      session.exercises.push({ name, weight, s1, s2, s3, s4, ressenti });
+        if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
+          session.exercises.push({ name, weight, s1, s2, s3, s4, ressenti });
+        }
+      });
+
+      const key = "structured-sessions";
+      const existingRaw = localStorage.getItem(key);
+      const existing = existingRaw ? JSON.parse(existingRaw) : [];
+      existing.push(session);
+      localStorage.setItem(key, JSON.stringify(existing));
+
+      const d = new Date(session.date);
+      const formatted = d.toLocaleDateString();
+      info.textContent = `Séance enregistrée pour le ${formatted} (stockée dans ce navigateur).`;
+
+      renderStructuredSessionsHistory(); // nouveau
+
+}
+
+    function renderStructuredSessionsHistory() {
+      const container = document.getElementById("sessions-history");
+      if (!container) return;
+
+      const raw = localStorage.getItem("structured-sessions");
+      if (!raw) {
+        container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+        return;
+      }
+
+      const sessions = JSON.parse(raw);
+      if (!sessions.length) {
+        container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+        return;
+      }
+
+      // on affiche de la plus récente à la plus ancienne
+      const reversed = sessions.slice().reverse();
+      let html = "";
+
+      reversed.forEach((s, idx) => {
+        const d = new Date(s.date);
+        const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
+        html += `
+  <div class="session-card">
+    <div class="session-card-header">
+      <span class="label">Séance du ${dateStr}</span>
+      <span>Niveau : ${s.level || "-"}</span>
+      <span>Durée : ${s.duration || "–"} min</span>
+    </div>
+
+    <ul class="session-card-exos">
+      ${
+        (s.exercises || [])
+          .map(ex => {
+            const lest = ex.weight && ex.weight !== "0" ? ` (lest : ${ex.weight} kg)` : "";
+            const series = [ex.s1, ex.s2, ex.s3, ex.s4]
+              .filter(v => v && v !== "0")
+              .join(" / ");
+            const seriesText = series ? ` – ${series} reps` : "";
+            const ressenti = ex.ressenti ? ` – ${ex.ressenti}` : "";
+            return `<li>${ex.name || "Exercice"}${lest}${seriesText}${ressenti}</li>`;
+          })
+          .join("")
+      }
+    </ul>
+
+    <button class="delete-session-btn" onclick="deleteSession(${sessions.length - 1 - idx})">
+      Supprimer cette séance
+    </button>
+  </div>
+`;
+
+      });
+
+      container.innerHTML = html;
     }
-  });
 
+    function deleteSession(index) {
   const key = "structured-sessions";
-  const existingRaw = localStorage.getItem(key);
-  const existing = existingRaw ? JSON.parse(existingRaw) : [];
-  existing.push(session);
-  localStorage.setItem(key, JSON.stringify(existing));
+  const raw = localStorage.getItem(key);
+  if (!raw) return;
 
-  const d = new Date(session.date);
-  const formatted = d.toLocaleDateString();
-  info.textContent = `Séance enregistrée pour le ${formatted} (stockée dans ce navigateur).`;
+  const sessions = JSON.parse(raw);
+
+  // Vérification si l’index est valide
+  if (index < 0 || index >= sessions.length) return;
+
+  // Suppression de la séance
+  sessions.splice(index, 1);
+
+  // Sauvegarde
+  localStorage.setItem(key, JSON.stringify(sessions));
+
+  // Mise à jour de l’affichage
+  renderStructuredSessionsHistory();
 }
 
 
@@ -681,10 +816,12 @@ function saveStructuredSession() {
       showPost(1);
     }
 
-    window.addEventListener("DOMContentLoaded", () => {
+      window.addEventListener("DOMContentLoaded", () => {
       initStructuredLog();
       loadPosts();
+      renderStructuredSessionsHistory();
     });
+
   </script>
 </body>
 </html>
