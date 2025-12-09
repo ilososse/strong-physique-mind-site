@@ -24,10 +24,27 @@
 
 
     .logo {
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      font-size: 16px;
-    }
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    font-size: 16px;
+    color: #111;
+    text-decoration: none; /* retire le soulignement */
+  }
+
+    .logo img {
+        height: 36px;
+        width: auto;
+        display: block;
+      }
+
+    .logo:hover {
+        opacity: 0.85; /* petit effet subtil sexy */
+      }
+
+
 
     nav a {
       margin-left: 16px;
@@ -408,7 +425,12 @@
 </head>
 <body>
   <header>
-    <div class="logo">Calisthénie & Ambition</div>
+    <a href="index.html" class="logo">
+  <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+  <span>Calisthénie & ambition</span>
+</a>
+
+
     <nav>
       <a href="index.html">Accueil</a>
       <a href="entrainements.html">Programmes & progression</a>
