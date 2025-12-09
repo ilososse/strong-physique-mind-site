@@ -22,6 +22,7 @@
       justify-content: space-between;
     }
 
+
     .logo {
       font-weight: 700;
       letter-spacing: 0.03em;
@@ -233,6 +234,53 @@
       margin-top: 8px;
       font-size: 11px;
       color: #555;
+    }
+
+    .dashboard {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .dashboard-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      align-items: flex-end;
+    }
+
+    .dashboard-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dashboard-controls select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+
+    #exercise-chart {
+      max-width: 100%;
+      margin-top: 10px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 260px;       /* hauteur fixe du graphique */
+      margin-top: 10px;
+    }
+
+    #exercise-chart {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
         .sessions-history {
@@ -471,14 +519,7 @@
       Date de la séance
       <input type="date" id="session-date" />
     </label>
-    <label>
-      Niveau
-      <select id="session-level">
-        <option value="Débutant">Débutant</option>
-        <option value="Intermédiaire">Intermédiaire</option>
-        <option value="Avancé / Pro">Avancé / Pro</option>
-      </select>
-    </label>
+
     <label>
       Durée (minutes)
       <input type="number" id="session-duration" min="0" step="1" />
@@ -495,6 +536,10 @@
           <th>Série 2</th>
           <th>Série 3</th>
           <th>Série 4</th>
+          <th>Série 5</th>
+          <th>Série 6</th>
+          <th>Série 7</th>
+          <th>Série 8</th>
           <th>Ressenti</th>
           <th></th>
         </tr>
@@ -525,6 +570,47 @@
       </div>
 
 </section>
+
+    <!-- TABLEAU DE BORD -->
+    <section class="dashboard">
+      <h2 class="section-title">Tableau de bord de progression</h2>
+      <p style="font-size: 14px; color:#555;">
+        Sélectionne un exercice et une métrique pour visualiser ta progression au fil des séances.
+        Les données proviennent de ton journal structuré et restent stockées uniquement dans ce navigateur.
+      </p>
+
+      <div class="dashboard-controls">
+        <label>
+          Exercice à analyser
+          <select id="dashboard-exercise">
+            <option value="Tractions">Tractions</option>
+            <option value="Pompes">Pompes</option>
+            <option value="Dips">Dips</option>
+            <option value="Planche">Planche</option>
+            <option value="Handstand">Handstand</option>
+            <option value="One Arm Handstand">One Arm Handstand</option>
+            <option value="Handstand Push Up">Handstand Push Up</option>
+            <option value="Human Flag">Human Flag</option>
+            <option value="Front Lever">Front Lever</option>
+            <option value="Muscle Up">Muscle Up</option>
+          </select>
+        </label>
+
+        <label>
+          Métrique
+          <select id="dashboard-metric">
+            <!-- rempli dynamiquement en JS selon le type d'exercice -->
+          </select>
+        </label>
+      </div>
+
+    <div class="chart-wrapper">
+      <canvas id="exercise-chart"></canvas>
+    </div>
+
+      <div class="info" id="dashboard-info"></div>
+    </section>
+
 
 
     <!-- JOURNAL LIBRE -->
@@ -585,8 +671,32 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script>
     /* ---------- JOURNAL STRUCTURÉ ---------- */
+
+    // Exercices à répétitions et à hold
+    const REPS_EXERCISES = [
+      "Tractions",
+      "Pompes",
+      "Dips",
+      "Handstand Push Up",
+      "Muscle Up"
+    ];
+
+    const HOLD_EXERCISES = [
+      "Planche",
+      "Handstand",
+      "One Arm Handstand",
+      "Human Flag",
+      "Front Lever"
+    ];
+
+    function isHoldExercise(name) {
+      return HOLD_EXERCISES.includes(name);
+    }
+
 function createExerciseRow(data) {
   const tr = document.createElement("tr");
 
@@ -611,6 +721,11 @@ function createExerciseRow(data) {
     <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
     <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
     <td><input type="number" class="ex-s4" min="0" step="1" value="${data?.s4 || ""}"></td>
+    <td><input type="number" class="ex-s5" min="0" step="1" value="${data?.s5 || ""}"></td>
+    <td><input type="number" class="ex-s6" min="0" step="1" value="${data?.s6 || ""}"></td>
+    <td><input type="number" class="ex-s7" min="0" step="1" value="${data?.s7 || ""}"></td>
+    <td><input type="number" class="ex-s8" min="0" step="1" value="${data?.s8 || ""}"></td>
+
     <td><input type="text" class="ex-ressenti" placeholder="Ressenti global" value="${data?.ressenti || ""}"></td>
     <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
   `;
@@ -636,7 +751,6 @@ function createExerciseRow(data) {
 
 function saveStructuredSession() {
   const dateInput = document.getElementById("session-date");
-  const levelSelect = document.getElementById("session-level");
   const durationInput = document.getElementById("session-duration");
   const rows = document.querySelectorAll("#session-rows tr");
   const info = document.getElementById("session-save-info");
@@ -648,7 +762,6 @@ function saveStructuredSession() {
 
   const session = {
     date: dateInput.value,
-    level: levelSelect.value,
     duration: durationInput.value || "",
     exercises: []
   };
@@ -660,10 +773,14 @@ function saveStructuredSession() {
         const s2 = row.querySelector(".ex-s2").value;
         const s3 = row.querySelector(".ex-s3").value;
         const s4 = row.querySelector(".ex-s4").value;
+        const s5 = row.querySelector(".ex-s5").value;
+        const s6 = row.querySelector(".ex-s6").value;
+        const s7 = row.querySelector(".ex-s7").value;
+        const s8 = row.querySelector(".ex-s8").value;
         const ressenti = row.querySelector(".ex-ressenti").value.trim();
 
         if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
-          session.exercises.push({ name, weight, s1, s2, s3, s4, ressenti });
+          session.exercises.push({ name, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
         }
       });
 
@@ -678,6 +795,7 @@ function saveStructuredSession() {
       info.textContent = `Séance enregistrée pour le ${formatted} (stockée dans ce navigateur).`;
 
       renderStructuredSessionsHistory(); // nouveau
+      renderExerciseChart();
 
 }
 
@@ -708,7 +826,6 @@ function saveStructuredSession() {
   <div class="session-card">
     <div class="session-card-header">
       <span class="label">Séance du ${dateStr}</span>
-      <span>Niveau : ${s.level || "-"}</span>
       <span>Durée : ${s.duration || "–"} min</span>
     </div>
 
@@ -758,6 +875,178 @@ function saveStructuredSession() {
   // Mise à jour de l’affichage
   renderStructuredSessionsHistory();
 }
+
+    let exerciseChart = null;
+
+    function getStructuredSessions() {
+      const raw = localStorage.getItem("structured-sessions");
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+
+    function updateMetricOptions() {
+      const exerciseSelect = document.getElementById("dashboard-exercise");
+      const metricSelect = document.getElementById("dashboard-metric");
+      if (!exerciseSelect || !metricSelect) return;
+
+      const exName = exerciseSelect.value;
+      metricSelect.innerHTML = "";
+
+      let options = [];
+
+      if (isHoldExercise(exName)) {
+        // Exos à hold
+        options = [
+          { value: "avg_hold", label: "Moyenne des holds" },
+          { value: "max_hold", label: "Max des holds" },
+          { value: "count_hold", label: "Nombre de holds" },
+        ];
+      } else {
+        // Exos à répétitions
+        options = [
+          { value: "sum_reps", label: "Somme des reps" },
+          { value: "avg_reps", label: "Moyenne des reps" },
+          { value: "count_sets", label: "Nombre de séries" },
+        ];
+      }
+
+      options.forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt.value;
+        o.textContent = opt.label;
+        metricSelect.appendChild(o);
+      });
+    }
+
+    function buildChartData(exerciseName, metricKey) {
+      const sessions = getStructuredSessions();
+      const labels = [];
+      const data = [];
+
+      sessions.forEach(s => {
+        const exercises = s.exercises || [];
+        const matching = exercises.filter(ex => ex.name === exerciseName);
+        if (!matching.length) return;
+
+        // On agrège toutes les séries de cet exo dans la séance
+        let values = [];
+        matching.forEach(ex => {
+          const nums = [ex.s1, ex.s2, ex.s3, ex.s4,ex.s5,ex.s6,ex.s7,ex.s8]
+            .map(v => Number(v))
+            .filter(v => !isNaN(v) && v > 0);
+          values = values.concat(nums);
+        });
+
+        if (!values.length) return;
+
+        let pointValue = 0;
+
+        if (isHoldExercise(exerciseName)) {
+          const sum = values.reduce((a, b) => a + b, 0);
+          const avg = sum / values.length;
+          const max = Math.max(...values);
+          const count = values.length;
+
+          if (metricKey === "avg_hold") pointValue = avg;
+          else if (metricKey === "max_hold") pointValue = max;
+          else if (metricKey === "count_hold") pointValue = count;
+        } else {
+          const sum = values.reduce((a, b) => a + b, 0);
+          const count = values.length;
+          const avg = sum / count;
+
+          if (metricKey === "sum_reps") pointValue = sum;
+          else if (metricKey === "avg_reps") pointValue = avg;
+          else if (metricKey === "count_sets") pointValue = count;
+        }
+
+        const d = new Date(s.date);
+        const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
+        labels.push(dateStr);
+        data.push(pointValue);
+      });
+
+      return { labels, data };
+    }
+
+    function renderExerciseChart() {
+      const exerciseSelect = document.getElementById("dashboard-exercise");
+      const metricSelect = document.getElementById("dashboard-metric");
+      const info = document.getElementById("dashboard-info");
+      const ctx = document.getElementById("exercise-chart");
+
+      if (!exerciseSelect || !metricSelect || !ctx) return;
+
+      const exerciseName = exerciseSelect.value;
+      const metricKey = metricSelect.value;
+
+      const { labels, data } = buildChartData(exerciseName, metricKey);
+
+      if (!labels.length) {
+        info.textContent = "Aucune donnée trouvée pour cet exercice et cette métrique.";
+        if (exerciseChart) {
+          exerciseChart.destroy();
+          exerciseChart = null;
+        }
+        return;
+      }
+
+      info.textContent = "";
+
+      if (exerciseChart) {
+        exerciseChart.destroy();
+      }
+
+      exerciseChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
+            data,
+            borderWidth: 2,
+            tension: 0.2,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              title: { display: true, text: "Séances" }
+            },
+            y: {
+              title: { display: true, text: "Valeur" },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
+    function initDashboard() {
+      const exerciseSelect = document.getElementById("dashboard-exercise");
+      const metricSelect = document.getElementById("dashboard-metric");
+      if (!exerciseSelect || !metricSelect) return;
+
+      updateMetricOptions();
+      renderExerciseChart();
+
+      exerciseSelect.addEventListener("change", () => {
+        updateMetricOptions();
+        renderExerciseChart();
+      });
+
+      metricSelect.addEventListener("change", () => {
+        renderExerciseChart();
+      });
+    }
+
 
 
     function initStructuredLog() {
@@ -820,6 +1109,7 @@ function saveStructuredSession() {
       initStructuredLog();
       loadPosts();
       renderStructuredSessionsHistory();
+      initDashboard();
     });
 
   </script>
