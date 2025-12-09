@@ -834,7 +834,7 @@ function saveStructuredSession() {
         (s.exercises || [])
           .map(ex => {
             const lest = ex.weight && ex.weight !== "0" ? ` (lest : ${ex.weight} kg)` : "";
-            const series = [ex.s1, ex.s2, ex.s3, ex.s4]
+            const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
               .filter(v => v && v !== "0")
               .join(" / ");
             const seriesText = series ? ` – ${series} reps` : "";
