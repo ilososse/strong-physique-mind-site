@@ -961,7 +961,7 @@ function saveStructuredSession() {
 
           if (metricKey === "sum_reps") pointValue = sum;
           else if (metricKey === "avg_reps") pointValue = avg;
-          else if (metricKey === "count_sets") pointValue = count;
+          else if (metricKey === "count_sets") pointValue = Math.round(count);
         }
 
         const d = new Date(s.date);
