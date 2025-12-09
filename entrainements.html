@@ -671,7 +671,11 @@
     </section>
   </main>
 
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
 
   <script>
     /* ---------- JOURNAL STRUCTURÉ ---------- */
@@ -1002,31 +1006,47 @@ function saveStructuredSession() {
       }
 
       exerciseChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
-            data,
-            borderWidth: 2,
-            tension: 0.2,
-            pointRadius: 3
-          }]
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
+          data,
+          borderWidth: 2,
+          tension: 0.2,
+          pointRadius: 3
+        }]
+      },
+      plugins: [ChartDataLabels],
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            title: { display: true, text: "Séances" }
+          },
+          y: {
+            title: { display: true, text: "Valeur" },
+            beginAtZero: true
+          }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              title: { display: true, text: "Séances" }
+        plugins: {
+          datalabels: {
+            anchor: "end",
+            align: "top",
+            offset: 4,
+            font: {
+              size: 10
             },
-            y: {
-              title: { display: true, text: "Valeur" },
-              beginAtZero: true
+            formatter: (value) => {
+              // entier -> "5", sinon -> "5.2"
+              return Number.isInteger(value) ? value : value.toFixed(1);
             }
           }
         }
-      });
+      }
+    });
+
     }
 
     function initDashboard() {
