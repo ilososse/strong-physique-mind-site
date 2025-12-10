@@ -2,5 +2,6 @@
 - Ajouter des images
 - Ajouter des couleurs
 - Enrichir la structure (ajouter des pages, fonctionnalités, tableaux de résultats par exemple) - fait
-- Rendre la marque un lien cliquable pour renvoyer à la page d'accueil
-- On peut imaginer un système de note du ressenti de chaque exercice 
+- Rendre la marque un lien cliquable pour renvoyer à la page d'accueil - fait
+- On peut imaginer un système de note du ressenti de chaque exercice
+- Uniformiser la police d'écriture dans la page principale 
