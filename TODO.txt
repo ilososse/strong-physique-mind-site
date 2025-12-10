@@ -5,3 +5,6 @@
 - Rendre la marque un lien cliquable pour renvoyer à la page d'accueil - fait
 - On peut imaginer un système de note du ressenti de chaque exercice
 - Uniformiser la police d'écriture dans la page principale 
+- Ajouter des front lever raises (dur mais super exercice pour avoir le front)
+- Ajouter colonne poids pour pouvoir lier performance et poids 
+- Documenter les facteurs qui influencent la performance (poids, taille, diététique et sommeil)

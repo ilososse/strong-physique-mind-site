@@ -925,7 +925,11 @@ function saveStructuredSession() {
       const raw = localStorage.getItem("structured-sessions");
       if (!raw) return [];
       try {
-        return JSON.parse(raw);
+        const sessions = JSON.parse(raw);
+        // Tri chronologique : plus anciennes → plus récentes
+        sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        return sessions;
       } catch {
         return [];
       }
