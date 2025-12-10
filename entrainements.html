@@ -1031,6 +1031,8 @@ function saveStructuredSession() {
 
       const exerciseName = exerciseSelect.value;
       const metricKey = metricSelect.value;
+      localStorage.setItem("last-selected-exercise", exerciseName);
+      localStorage.setItem("last-selected-metric", metricKey);
 
       const { labels, data } = buildChartData(exerciseName, metricKey);
 
@@ -1172,6 +1174,12 @@ function saveStructuredSession() {
       window.addEventListener("DOMContentLoaded", () => {
       initStructuredLog();
       loadPosts();
+      const exerciseSelect = document.getElementById("dashboard-exercise");
+      const metricSelect = document.getElementById("dashboard-metric");
+      const savedExercise = localStorage.getItem("last-selected-exercise");
+      if (savedExercise) exerciseSelect.value = savedExercise;
+      const savedMetric = localStorage.getItem("last-selected-metric");
+      if (savedMetric) metricSelect.value = savedMetric;
       renderStructuredSessionsHistory();
       initDashboard();
     });
