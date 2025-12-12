@@ -841,7 +841,8 @@ const select = tr.querySelector(".ex-name");
 const custom = tr.querySelector(".ex-custom");
 
 function syncRowCustom() {
-  const isCustom = select.value === "__custom__";
+  const v = select.value;
+  const isCustom = (v === "__custom_reps__" || v === "__custom_hold__");
   custom.style.display = isCustom ? "block" : "none";
   if (!isCustom) custom.value = "";
 }
