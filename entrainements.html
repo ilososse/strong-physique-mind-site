@@ -650,7 +650,9 @@
             <option value="Human Flag">Human Flag</option>
             <option value="Front Lever">Front Lever</option>
             <option value="Muscle Up">Muscle Up</option>
-            <option value="__custom__">Autre</option>
+            <option value="__custom_reps__">Autre... (Reps)</option>
+            <option value="__custom_hold__">Autre... (Hold)</option>
+
           </select>
 
           <input
@@ -766,6 +768,7 @@
     ];
 
     function isHoldExercise(name) {
+      if (isCustomHoldSelected()) return true;
       return HOLD_EXERCISES.includes(name);
     }
 
@@ -774,11 +777,17 @@
       const customInput = document.getElementById("custom-exercise");
       if (!exerciseSelect) return "";
 
-      if (exerciseSelect.value === "__custom__") {
+      const v = exerciseSelect.value;
+      if (v === "__custom_reps__" || v === "__custom_hold__") {
         return (customInput?.value || "").trim();
       }
-      return exerciseSelect.value;
+      return v;
     }
+
+function isCustomHoldSelected() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  return exerciseSelect?.value === "__custom_hold__";
+}
 
 
 function createExerciseRow(data) {
@@ -801,7 +810,8 @@ function createExerciseRow(data) {
         <option value="Human Flag">Human Flag</option>
         <option value="Front Lever">Front Lever</option>
         <option value="Muscle Up">Muscle Up</option>
-        <option value="__custom__">Autre</option>
+        <option value="__custom_reps__">Autre... (Reps)</option>
+        <option value="__custom_hold__">Autre... (Hold)</option>
       </select>
       <input
     type="text"
@@ -1191,7 +1201,18 @@ function saveStructuredSession() {
       function syncCustomUI() {
         if (!customInput) return;
 
-        const isCustom = exerciseSelect.value === "__custom__";
+        const isCustom = (exerciseSelect.value === "__custom_reps__" || exerciseSelect.value === "__custom_hold__");
+        customInput.style.display = isCustom ? "block" : "none";
+
+        if (isCustom) {
+          const key = (exerciseSelect.value === "__custom_hold__")
+            ? "custom-hold-exercise-name"
+            : "custom-reps-exercise-name";
+
+          const savedName = localStorage.getItem(key) || "";
+          if (!customInput.value) customInput.value = savedName;
+        }
+
         customInput.style.display = isCustom ? "block" : "none";
 
         if (isCustom) {
@@ -1230,7 +1251,12 @@ function saveStructuredSession() {
       if (customInput) {
         customInput.addEventListener("input", () => {
           const name = (customInput.value || "").trim();
-          localStorage.setItem("custom-exercise-name", name);
+          const key = (exerciseSelect.value === "__custom_hold__")
+            ? "custom-hold-exercise-name"
+            : "custom-reps-exercise-name";
+
+          localStorage.setItem(key, name);
+
           renderExerciseChart();
         });
       }
