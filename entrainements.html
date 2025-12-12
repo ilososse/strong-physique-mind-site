@@ -1100,11 +1100,22 @@ function saveStructuredSession() {
       const metricSelect = document.getElementById("dashboard-metric");
       if (!exerciseSelect || !metricSelect) return;
 
-      updateMetricOptions();
-      renderExerciseChart();
+      updateMetricOptions(); // génère les options de métrique selon l'exo sélectionné
+
+      // Restaurer la métrique APRES la génération des options, AVANT le rendu du chart
+      const savedMetric = localStorage.getItem("last-selected-metric");
+      if (savedMetric) {
+        const exists = Array.from(metricSelect.options).some(opt => opt.value === savedMetric);
+        if (exists) metricSelect.value = savedMetric;
+      }
+
+      renderExerciseChart(); // construit le graph avec la métrique restaurée
 
       exerciseSelect.addEventListener("change", () => {
         updateMetricOptions();
+
+        // optionnel mais propre : si la métrique sauvegardée n'est pas compatible avec le nouvel exo,
+        // on laisse la première option dispo
         renderExerciseChart();
       });
 
@@ -1112,6 +1123,7 @@ function saveStructuredSession() {
         renderExerciseChart();
       });
     }
+
 
 
 
@@ -1172,17 +1184,17 @@ function saveStructuredSession() {
     }
 
       window.addEventListener("DOMContentLoaded", () => {
-      initStructuredLog();
-      loadPosts();
-      const exerciseSelect = document.getElementById("dashboard-exercise");
-      const metricSelect = document.getElementById("dashboard-metric");
-      const savedExercise = localStorage.getItem("last-selected-exercise");
-      if (savedExercise) exerciseSelect.value = savedExercise;
-      const savedMetric = localStorage.getItem("last-selected-metric");
-      if (savedMetric) metricSelect.value = savedMetric;
-      renderStructuredSessionsHistory();
-      initDashboard();
-    });
+        initStructuredLog();
+        loadPosts();
+
+        const exerciseSelect = document.getElementById("dashboard-exercise");
+        const savedExercise = localStorage.getItem("last-selected-exercise");
+        if (savedExercise && exerciseSelect) exerciseSelect.value = savedExercise;
+
+        renderStructuredSessionsHistory();
+        initDashboard(); // initDashboard s’occupe de la métrique + du rendu du chart
+      });
+
 
   </script>
 </body>
