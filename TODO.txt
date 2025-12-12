@@ -8,3 +8,5 @@
 - Ajouter des front lever raises (dur mais super exercice pour avoir le front)
 - Ajouter colonne poids pour pouvoir lier performance et poids 
 - Documenter les facteurs qui influencent la performance (poids, taille, diététique et sommeil)
+- URGENT : RENDRE LES SEANCES DANS l'HISTORIQUE MODIFIABLES POUR POUVOIR PLANIFIER LES SEANCES !
+  OU ALORS : Prévoir un espace dans la page pour y mettre le sessions futurs qu'avec les noms des exercices à faire
