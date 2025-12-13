@@ -1599,41 +1599,51 @@ async function getOrCreateUsername(inputUsername) {
  window.addEventListener("DOMContentLoaded", initUsernameUI);
 
 
-  function renderFeedItem(s) {
-    const d = new Date(s.session_date);
-    const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
+  function renderFeedItem(s, currentUserId) {
+  const d = new Date(s.session_date);
+  const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
 
-    const exList = (s.payload?.exercises || [])
-      .slice(0, 6)
-      .map(ex => {
-        const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-          .filter(v => v !== "" && v !== null && v !== undefined)
-          .join("/");
-        return `<li>${(ex.name || "Exo")} ${series ? `— ${series}` : ""}</li>`;
-      })
-      .join("");
+  const exList = (s.payload?.exercises || [])
+    .slice(0, 6)
+    .map(ex => {
+      const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+        .filter(v => v !== "" && v !== null && v !== undefined)
+        .join("/");
+      return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)}` : ""}</li>`;
+    })
+    .join("");
 
-    return `
-      <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
-          <strong>${escapeHtml(s.username)}</strong>
-          <span style="font-size:12px;color:#666;">${dateLabel}</span>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:4px;">
-          Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
-        </div>
-        <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
-          ${exList || "<li>(séance vide)</li>"}
-        </ul>
+  const canDelete = currentUserId && s.user_id === currentUserId;
+
+  return `
+    <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+        <strong>${escapeHtml(s.username)}</strong>
+        <span style="font-size:12px;color:#666;">${escapeHtml(dateLabel)}</span>
       </div>
-    `;
-  }
+      <div style="font-size:12px;color:#666;margin-top:4px;">
+        Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
+      </div>
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
+        ${exList || "<li>(séance vide)</li>"}
+      </ul>
 
+      ${canDelete ? `
+        <button class="delete-session-btn" type="button" onclick="deleteSession(${s.id})">
+          Supprimer cette publication
+        </button>
+      ` : ""}
+    </div>
+  `;
+}
+
+  
   function escapeHtml(str) {
     return str.replace(/[&<>"']/g, m => ({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
     }[m]));
   }
+
 
   async function loadPublicFeed() {
     const container = document.getElementById("public-feed");
@@ -1641,17 +1651,37 @@ async function getOrCreateUsername(inputUsername) {
 
     const { data, error } = await supabase
       .from("workout_sessions")
-      .select("id, created_at, username, session_date, payload")
+      .select("id, user_id, created_at, username, session_date, payload")
       .order("created_at", { ascending: false })
       .limit(20);
+    const { data: authData } = await supabase.auth.getUser();
+    const currentUserId = authData?.user?.id || null;
 
     if (error) {
       container.innerHTML = `<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`;
       return;
     }
 
-    container.innerHTML = (data || []).map(renderFeedItem).join("");
+    container.innerHTML = (data || []).map(s => renderFeedItem(s, currentUserId)).join("");
   }
+
+    async function deleteSession(sessionId) {
+  const ok = confirm("Supprimer définitivement cette séance ?");
+  if (!ok) return;
+
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) {
+    alert("Erreur suppression : " + error.message);
+    return;
+  }
+
+  await loadPublicFeed();
+}
+
 
   window.addEventListener("DOMContentLoaded", () => {
     loadPublicFeed();
