@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // 1) Connexion base de données Supabase pour la partie communauté
+  const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+  
 <head>
   <meta charset="UTF-8" />
   <title>Programmes & progression – Calisthénie</title>
@@ -7,6 +17,7 @@
   <link rel="icon" type="image/png" href="images/favicon.png">
 
   <style>
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
@@ -24,6 +35,20 @@
       justify-content: space-between;
     }
 
+    #public-feed{
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;           /* scroll horizontal */
+  padding-bottom: 8px;        /* évite que la scrollbar cache le bas */
+  scroll-snap-type: x mandatory; /* snap sympa */
+  -webkit-overflow-scrolling: touch; /* inertie iOS */
+}
+
+    #public-feed > div{
+      font-size: 12px;
+      flex: 0 0 320px;            /* largeur fixe de “carte” */
+      scroll-snap-align: start;
+    }
 
     .logo {
     display: flex;
@@ -323,20 +348,43 @@
       height: 100%;
       display: block;
     }
+#sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
 
-        .sessions-history {
-      margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px solid #eee;
-    }
+#sessions-history > .session-card {
+  flex: 0 0 320px;
+  scroll-snap-align: start;
+}
 
-    .session-card {
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: #fafafa;
-      font-size: 12px;
-    }
+    #sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sessions-history > .session-card {
+  flex: 0 0 400;
+  scroll-snap-align: start;
+}
+.session-card {
+
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+}
+
 
     .session-card-header {
       display: flex;
@@ -462,6 +510,59 @@
   </header>
 
   <main>
+    <!-- UI for login publications and feed -->    
+
+<section class="structured-log" style="margin-top:16px;">
+  <h2 class="section-title">Communauté</h2>
+  <p style="font-size:14px;color:#555;">
+    Publie tes séances (pseudo) et consulte le feed public pour t’inspirer. Attention, une fois ton pseudo saisi et ta séance publiée, il n’est plus modifiable !
+  </p>
+
+  <div class="session-meta" style="align-items:flex-end;">
+    <label>
+      Email (login)
+      <input id="auth-email" type="email" placeholder="ton@email.com">
+    </label>
+
+    <label>
+      Mot de passe
+      <input id="auth-pass" type="password" placeholder="••••••••">
+    </label>
+
+    <button class="btn btn-secondary" type="button" onclick="signup()">
+      S’inscrire
+    </button>
+    <button class="btn btn-primary" type="button" onclick="login();await initUsernameUI();">
+      Se connecter
+    </button>
+    <button class="btn btn-secondary" type="button" onclick="logout();await initUsernameUI();">
+      Déconnexion
+    </button>
+  </div>
+
+  <div class="session-meta" style="margin-top:10px; align-items:flex-end;">
+    <label>
+      Pseudo (public)
+      <input id="public-username" type="text" placeholder="ex: cali_ambition">
+    </label>
+
+    <button class="btn btn-primary" type="button" onclick="publishLastSession()">
+      Publier ma dernière séance
+    </button>
+  </div>
+
+  <div class="info" id="community-info"></div>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:14px 0;">
+
+  <h3 style="margin:0 0 8px;font-size:15px;">Feed public (dernières séances)</h3>
+  <div id="public-feed"></div>
+
+
+
+
+</section>
+
     <!-- INTRO -->
     <section class="hero">
       <h1>Programmes & journal de progression</h1>
@@ -1353,5 +1454,209 @@ function saveStructuredSession() {
       });
 
   </script>
+
+  <script>
+  function uiInfo(msg) {
+    const el = document.getElementById("community-info");
+    if (el) el.textContent = msg || "";
+  }
+
+  async function signup() {
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-pass").value.trim();
+    if (!email || !password) return uiInfo("Email + mot de passe requis.");
+
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) return uiInfo("Erreur inscription: " + error.message);
+    uiInfo("Inscription OK. Vérifie tes emails si demandé, puis connecte-toi.");
+  }
+
+  async function login() {
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-pass").value.trim();
+    if (!email || !password) return uiInfo("Email + mot de passe requis.");
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return uiInfo("Erreur login: " + error.message);
+    uiInfo("Connecté.");
+  }
+  
+async function getOrCreateUsername(inputUsername) {
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (!user) return null;
+
+  // 1) Lire le profil existant (0 ligne = OK)
+  const { data: profile, error: selectError } = await supabase
+    .from("user_profiles")
+    .select("username")
+    .eq("user_id", user.id)
+    .maybeSingle(); // 🔑 IMPORTANT
+
+  if (selectError) {
+    console.error(selectError);
+    throw selectError;
+  }
+
+  if (profile?.username) return profile.username;
+
+  // 2) Créer le pseudo
+  const username = inputUsername.trim();
+  if (!username) return null;
+
+  const { error: insertError } = await supabase
+    .from("user_profiles")
+    .insert({ user_id: user.id, username });
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      throw new Error("USERNAME_TAKEN");
+    }
+    throw insertError;
+  }
+
+  return username;
+}
+
+
+  async function logout() {
+    await supabase.auth.signOut();
+    uiInfo("Déconnecté.");
+  }
+
+  // Publie la DERNIÈRE séance stockée dans ton localStorage "structured-sessions"
+  async function publishLastSession() {
+    uiInfo("");
+
+    const { data: authData } = await supabase.auth.getUser();
+    console.log("AUTH USER:", authData);
+
+    const user = authData?.user;
+    if (!user) return uiInfo("Tu dois être connecté pour publier.");
+
+    
+    const inputUsername = document.getElementById("public-username").value;
+
+  let username;
+  try {
+    username = await getOrCreateUsername(inputUsername);
+  } catch (e) {
+    return uiInfo("Ce pseudo est déjà utilisé.");
+  }
+
+  if (!username) {
+    return uiInfo("Choisis un pseudo (une seule fois).");
+  }
+
+
+    const raw = localStorage.getItem("structured-sessions");
+    const sessions = raw ? JSON.parse(raw) : [];
+    if (!sessions.length) return uiInfo("Aucune séance à publier (journal structuré vide).");
+
+    const last = sessions[sessions.length - 1];
+    if (!last?.date) return uiInfo("Ta dernière séance n’a pas de date.");
+
+    const row = {
+      user_id: user.id,
+      username,
+      session_date: last.date,
+      payload: last
+    };
+    console.log("INSERT PAYLOAD:", row);
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .insert(row)
+      .select();
+
+    console.log("INSERT RESULT:", data, error);
+
+    if (error) return uiInfo("Erreur publication: " + error.message);
+
+    uiInfo("Séance publiée ✅");
+    await loadPublicFeed();
+  }
+  
+  async function initUsernameUI() {
+  const input = document.getElementById("public-username");
+  if (!input) return;
+
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user;
+  if (!user) return;
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("username")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (profile?.username) {
+    input.value = profile.username;
+    input.disabled = true;
+    input.title = "Pseudo définitif";
+  }
+}
+ window.addEventListener("DOMContentLoaded", initUsernameUI);
+
+
+  function renderFeedItem(s) {
+    const d = new Date(s.session_date);
+    const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
+
+    const exList = (s.payload?.exercises || [])
+      .slice(0, 6)
+      .map(ex => {
+        const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+          .filter(v => v !== "" && v !== null && v !== undefined)
+          .join("/");
+        return `<li>${(ex.name || "Exo")} ${series ? `— ${series}` : ""}</li>`;
+      })
+      .join("");
+
+    return `
+      <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+          <strong>${escapeHtml(s.username)}</strong>
+          <span style="font-size:12px;color:#666;">${dateLabel}</span>
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:4px;">
+          Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
+        </div>
+        <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
+          ${exList || "<li>(séance vide)</li>"}
+        </ul>
+      </div>
+    `;
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  async function loadPublicFeed() {
+    const container = document.getElementById("public-feed");
+    if (!container) return;
+
+    const { data, error } = await supabase
+      .from("workout_sessions")
+      .select("id, created_at, username, session_date, payload")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      container.innerHTML = `<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`;
+      return;
+    }
+
+    container.innerHTML = (data || []).map(renderFeedItem).join("");
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    loadPublicFeed();
+  });
+</script>
+
 </body>
 </html>
