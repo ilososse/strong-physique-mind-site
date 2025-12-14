@@ -1170,6 +1170,7 @@ function renderStructuredSessionsHistory() {
           { value: "avg_hold", label: "Moyenne des holds" },
           { value: "max_hold", label: "Max des holds" },
           { value: "count_hold", label: "Nombre de holds" },
+          { value: "sum_hold", label: "Somme des holds" }
         ];
       } else {
         // Exos à répétitions
@@ -1220,6 +1221,7 @@ function renderStructuredSessionsHistory() {
           if (metricKey === "avg_hold") pointValue = avg;
           else if (metricKey === "max_hold") pointValue = max;
           else if (metricKey === "count_hold") pointValue = count;
+          else if (metricKey === "sum_hold") pointValue = sum;
         } else {
           const sum = values.reduce((a, b) => a + b, 0);
           const count = values.length;
