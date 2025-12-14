@@ -1227,6 +1227,7 @@ function renderStructuredSessionsHistory() {
           const sum = values.reduce((a, b) => a + b, 0);
           const count = values.length;
           const avg = sum / count;
+          const max = Math.max(...values);
 
           if (metricKey === "sum_reps") pointValue = sum;
           else if (metricKey === "avg_reps") pointValue = avg;
