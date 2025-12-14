@@ -994,7 +994,22 @@ function saveStructuredSession() {
         rows.forEach(row => {
         const selectVal = row.querySelector(".ex-name").value;
         const customVal = (row.querySelector(".ex-custom")?.value || "").trim();
-        const name = (selectVal === "__custom__") ? customVal : selectVal;
+
+        const isCustomReps = selectVal === "__custom_reps__";
+        const isCustomHold = selectVal === "__custom_hold__";
+        const isCustom = isCustomReps || isCustomHold;
+
+        // nom affiché
+        const name = isCustom ? customVal : selectVal;
+
+        // type pour unités/métriques
+        const mode = isCustom
+          ? (isCustomHold ? "hold" : "reps")
+          : (isHoldExercise(selectVal) ? "hold" : "reps");
+
+        // (optionnel mais conseillé) si custom et vide, ne pas enregistrer la ligne
+        if (isCustom && !name) return;
+
         const weight = row.querySelector(".ex-weight")?.value || "0";
         const s1 = row.querySelector(".ex-s1").value;
         const s2 = row.querySelector(".ex-s2").value;
@@ -1007,7 +1022,7 @@ function saveStructuredSession() {
         const ressenti = row.querySelector(".ex-ressenti").value.trim();
 
         if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
-          session.exercises.push({ name, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
+          session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
         }
       });
 
@@ -1077,7 +1092,10 @@ function renderStructuredSessionsHistory() {
                   .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
                   .join(" / ");
 
-                const seriesText = series ? ` – ${escapeHtml(series)} reps` : "";
+                const unit = ex.mode === "hold" ? "s" : "reps";
+                const seriesText = series ? ` – ${escapeHtml(series)} ${unit}` : "";
+
+
 
                 const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
 
