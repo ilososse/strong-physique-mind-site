@@ -535,7 +535,7 @@
     <button class="btn btn-primary" type="button" onclick="login();">
       Se connecter
     </button>
-    <button class="btn btn-secondary" type="button" onclick="logout();await initUsernameUI();">
+    <button class="btn btn-secondary" type="button" onclick="logout();">
       Déconnexion
     </button>
   </div>
@@ -1526,10 +1526,29 @@ async function getOrCreateUsername(inputUsername) {
 }
 
 
-  async function logout() {
-    await supabase.auth.signOut();
-    uiInfo("Déconnecté.");
+async function logout() {
+  uiInfo("");
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    uiInfo("Erreur déconnexion : " + error.message);
+    return;
   }
+
+  uiInfo("Déconnecté.");
+
+  // ✅ reset UI pseudo (si tu utilises initUsernameUI)
+  if (typeof initUsernameUI === "function") {
+    await initUsernameUI();
+  }
+
+  // ✅ recharger le feed (bouton delete doit disparaître, etc.)
+  if (typeof loadPublicFeed === "function") {
+    await loadPublicFeed();
+  }
+}
+
 
   // Publie la DERNIÈRE séance stockée dans ton localStorage "structured-sessions"
   async function publishLastSession() {
