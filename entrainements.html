@@ -1025,66 +1025,81 @@ function saveStructuredSession() {
       renderExerciseChart();
 
 }
+function renderStructuredSessionsHistory() {
+  const container = document.getElementById("sessions-history");
+  if (!container) return;
 
-    function renderStructuredSessionsHistory() {
-      const container = document.getElementById("sessions-history");
-      if (!container) return;
+  const raw = localStorage.getItem("structured-sessions");
+  if (!raw) {
+    container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+    return;
+  }
 
-      const raw = localStorage.getItem("structured-sessions");
-      if (!raw) {
-        container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
-        return;
-      }
+  let sessions = getStructuredSessions();
 
-      let sessions = getStructuredSessions();
+  if (!sessions.length) {
+    container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+    return;
+  }
 
-      if (!sessions.length) {
-        container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
-        return;
-      }
+  // on affiche de la plus récente à la plus ancienne
+  const reversed = sessions.slice().reverse();
+  let html = "";
 
-      // on affiche de la plus récente à la plus ancienne
-      const reversed = sessions.slice().reverse();
-      let html = "";
+  reversed.forEach((s, idx) => {
+    const originalIndex = sessions.length - 1 - idx; // ✅ index réel dans localStorage
 
-      reversed.forEach((s, idx) => {
-        const d = new Date(s.date);
-        const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
-        html += `
-  <div class="session-card">
-    <div class="session-card-header">
-      <span class="label">Séance du ${dateStr}</span>
-      <span>Durée : ${s.duration || "–"} min</span>
-    </div>
+    const d = new Date(s.date);
+    const dateStr = isNaN(d.getTime()) ? (s.date || "") : d.toLocaleDateString();
 
-    <ul class="session-card-exos">
-      ${
-        (s.exercises || [])
-          .map(ex => {
-            const lest = ex.weight && ex.weight !== "0" ? ` (lest : ${ex.weight} kg)` : "";
-            const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-              .filter(v => v && v !== "0")
-              .join(" / ");
-            const seriesText = series ? ` – ${series} reps` : "";
-            const ressenti = ex.ressenti ? ` – ${ex.ressenti}` : "";
-            return `<li>${ex.name || "Exercice"}${lest}${seriesText}${ressenti}</li>`;
-          })
-          .join("")
-      }
-    </ul>
+    const durationStr =
+      s.duration !== undefined && s.duration !== null && String(s.duration).trim() !== ""
+        ? String(s.duration)
+        : "–";
 
-    <button class="delete-session-btn" onclick="deleteSession(${sessions.length - 1 - idx})">
-      Supprimer cette séance
-    </button>
-  </div>
-`;
+    html += `
+      <div class="session-card">
+        <div class="session-card-header">
+          <span class="label">Séance du ${escapeHtml(dateStr)}</span>
+          <span>Durée : ${escapeHtml(durationStr)} min</span>
+        </div>
 
-      });
+        <ul class="session-card-exos">
+          ${
+            (s.exercises || [])
+              .map(ex => {
+                const name = escapeHtml(ex.name || "Exercice");
 
-      container.innerHTML = html;
-    }
+                const weightStr = ex.weight !== undefined && ex.weight !== null ? String(ex.weight) : "0";
+                const lest = (weightStr && weightStr !== "0") ? ` (lest : ${escapeHtml(weightStr)} kg)` : "";
 
-    function deleteSession(index) {
+                const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+                  .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
+                  .join(" / ");
+
+                const seriesText = series ? ` – ${escapeHtml(series)} reps` : "";
+
+                const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
+
+                return `<li>${name}${lest}${seriesText}${ressenti}</li>`;
+              })
+              .join("")
+          }
+        </ul>
+
+        <button class="delete-session-btn" type="button" onclick="deleteSessionHistory(${originalIndex})">
+          Supprimer cette séance
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+
+
+    function deleteSessionHistory(index) {
   const key = "structured-sessions";
   const raw = localStorage.getItem(key);
   if (!raw) return;
@@ -1101,6 +1116,7 @@ function saveStructuredSession() {
   localStorage.setItem(key, JSON.stringify(sessions));
 
   // Mise à jour de l’affichage
+  renderExerciseChart();
   renderStructuredSessionsHistory();
 }
 
