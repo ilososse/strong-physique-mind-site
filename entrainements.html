@@ -532,7 +532,7 @@
     <button class="btn btn-secondary" type="button" onclick="signup()">
       S’inscrire
     </button>
-    <button class="btn btn-primary" type="button" onclick="login();await initUsernameUI();">
+    <button class="btn btn-primary" type="button" onclick="login();">
       Se connecter
     </button>
     <button class="btn btn-secondary" type="button" onclick="logout();await initUsernameUI();">
@@ -1471,16 +1471,23 @@ function saveStructuredSession() {
     uiInfo("Inscription OK. Vérifie tes emails si demandé, puis connecte-toi.");
   }
 
-  async function login() {
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-pass").value.trim();
-    if (!email || !password) return uiInfo("Email + mot de passe requis.");
+async function login() {
+  uiInfo(""); // ou ton élément d'info
+  const email = document.getElementById("auth-email").value.trim().toLowerCase();
+  const password = document.getElementById("auth-pass").value.trim();
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return uiInfo("Erreur login: " + error.message);
-    uiInfo("Connecté.");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    uiInfo("Erreur login : " + error.message);
+    return;
   }
-  
+
+  uiInfo("Connecté ✅");
+  await initUsernameUI(); // si tu l'as
+  await loadPublicFeed();
+}
+
 async function getOrCreateUsername(inputUsername) {
   const { data: auth } = await supabase.auth.getUser();
   const user = auth?.user;
