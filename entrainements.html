@@ -1175,9 +1175,10 @@ function renderStructuredSessionsHistory() {
       } else {
         // Exos à répétitions
         options = [
-          { value: "sum_reps", label: "Somme des reps" },
           { value: "avg_reps", label: "Moyenne des reps" },
+          { value: "max_rep", label: "Max des reps" },
           { value: "count_sets", label: "Nombre de séries" },
+          { value: "sum_reps", label: "Somme des reps" }
         ];
       }
 
@@ -1230,6 +1231,7 @@ function renderStructuredSessionsHistory() {
           if (metricKey === "sum_reps") pointValue = sum;
           else if (metricKey === "avg_reps") pointValue = avg;
           else if (metricKey === "count_sets") pointValue = count;
+          else if (metricKey === "max_rep") pointValue = max;
         }
 
         const d = new Date(s.date);
