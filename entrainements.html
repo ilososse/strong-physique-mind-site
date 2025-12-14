@@ -1708,9 +1708,6 @@ async function logout() {
   }
 
     async function deleteSession(sessionId) {
-  const ok = confirm("Supprimer définitivement cette séance ?");
-  if (!ok) return;
-
   const { error } = await supabase
     .from("workout_sessions")
     .delete()
