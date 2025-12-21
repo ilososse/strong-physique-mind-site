@@ -1871,48 +1871,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 
 </script>
-<script>
-(function () {
-  // petite console visible sur la page (utile iPhone / navigation privée)
-  const box = document.createElement("pre");
-  box.id = "diag";
-  box.style.cssText = "position:fixed;bottom:10px;left:10px;right:10px;z-index:99999;background:#fff;border:1px solid #000;padding:10px;font:12px system-ui;max-height:40vh;overflow:auto;white-space:pre-wrap;";
-  box.textContent = "DIAG...\n";
-  document.addEventListener("DOMContentLoaded", () => document.body.appendChild(box));
 
-  function log(s){ box.textContent += s + "\n"; }
-
-  window.addEventListener("error", (e) => log("JS ERROR ❌ " + (e.message || e.error)));
-  window.addEventListener("unhandledrejection", (e) => log("PROMISE ❌ " + (e.reason?.message || e.reason)));
-
-  document.addEventListener("DOMContentLoaded", async () => {
-    const c = window.supabaseClient;
-
-    log("window.supabase = " + (window.supabase ? "OK" : "UNDEF"));
-    log("window.supabaseClient = " + (c ? "OK" : "UNDEF"));
-    log("client.from = " + typeof c?.from);
-    log("client.auth = " + typeof c?.auth);
-    log("window.login = " + typeof window.login);
-    log("window.logout = " + typeof window.logout);
-
-    // test session
-    try {
-      const { data, error } = await c.auth.getSession();
-      log("getSession = " + (error ? ("ERR: " + error.message) : (data?.session ? "SESSION ✅" : "NO SESSION")));
-    } catch (e) {
-      log("getSession EXC ❌ " + e.message);
-    }
-
-    // test SELECT (feed)
-    try {
-      const { data, error } = await c.from("workout_sessions").select("id").limit(1);
-      log("SELECT = " + (error ? ("ERR: " + error.message) : ("OK rows=" + (data?.length ?? 0))));
-    } catch (e) {
-      log("SELECT EXC ❌ " + e.message);
-    }
-  });
-})();
-</script>
 
 </body>
 </html>
