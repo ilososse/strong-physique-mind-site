@@ -2,19 +2,39 @@
 <html lang="fr">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // 1) Connexion base de données Supabase pour la partie communauté
-  const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const pre = document.createElement("pre");
+    pre.textContent =
+      "window.supabase: " + (window.supabase ? "OK" : "NO") + "\n" +
+      "window.supabaseClient: " + (window.supabaseClient ? "OK" : "NO") + "\n" +
+      "client.from: " + typeof window.supabaseClient?.from + "\n" +
+      "client.auth: " + typeof window.supabaseClient?.auth + "\n";
+    document.body.appendChild(pre);
+  });
 </script>
+
+
   
 <head>
+
+
   <meta charset="UTF-8" />
   <title>Programmes & progression – Calisthénie</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/favicon.png">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
+
+    // ✅ création unique du client
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
 
   <style>
 
@@ -372,7 +392,7 @@
 }
 
 #sessions-history > .session-card {
-  flex: 0 0 400;
+  flex: 0 0 400px;
   scroll-snap-align: start;
 }
 .session-card {
@@ -532,10 +552,10 @@
     <button class="btn btn-secondary" type="button" onclick="signup()">
       S’inscrire
     </button>
-    <button class="btn btn-primary" type="button" onclick="login();">
+    <button class="btn btn-primary" type="button" onclick="login()">
       Se connecter
     </button>
-    <button class="btn btn-secondary" type="button" onclick="logout();">
+    <button class="btn btn-secondary" type="button" onclick="logout()">
       Déconnexion
     </button>
   </div>
@@ -868,6 +888,10 @@
       "Front Lever",
       "Tuck planche",
     ];
+    
+
+console.log("CHECK auth =", supabaseClient.auth);
+
 
     function isHoldExercise(name) {
       if (isCustomHoldSelected()) return true;
@@ -1495,50 +1519,34 @@ function renderStructuredSessionsHistory() {
   </script>
 
   <script>
+
+const supabaseClient = window.supabaseClient;
+if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
+  console.error("Supabase client invalide", supabaseClient);
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
   function uiInfo(msg) {
     const el = document.getElementById("community-info");
     if (el) el.textContent = msg || "";
   }
 
-  async function signup() {
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-pass").value.trim();
-    if (!email || !password) return uiInfo("Email + mot de passe requis.");
 
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return uiInfo("Erreur inscription: " + error.message);
-    uiInfo("Inscription OK. Vérifie tes emails si demandé, puis connecte-toi.");
-  }
-
-async function login() {
-  uiInfo(""); // ou ton élément d'info
-  const email = document.getElementById("auth-email").value.trim().toLowerCase();
-  const password = document.getElementById("auth-pass").value.trim();
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-  email,
-  password
-});
-
-if (error) {
-  uiInfo("Erreur login : " + error.message);
-  console.error("Login error:", error);
-  return;
-}
-
-uiInfo("Connecté !");
-
-  await initUsernameUI(); // si tu l'as
-  await loadPublicFeed();
-}
 
 async function getOrCreateUsername(inputUsername) {
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
   if (!user) return null;
 
   // 1) Lire le profil existant (0 ligne = OK)
-  const { data: profile, error: selectError } = await supabase
+  const { data: profile, error: selectError } = await supabaseClient
     .from("user_profiles")
     .select("username")
     .eq("user_id", user.id)
@@ -1555,7 +1563,7 @@ async function getOrCreateUsername(inputUsername) {
   const username = inputUsername.trim();
   if (!username) return null;
 
-  const { error: insertError } = await supabase
+  const { error: insertError } = await supabaseClient
     .from("user_profiles")
     .insert({ user_id: user.id, username });
 
@@ -1570,35 +1578,11 @@ async function getOrCreateUsername(inputUsername) {
 }
 
 
-async function logout() {
-  uiInfo("");
-
-  const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    uiInfo("Erreur déconnexion : " + error.message);
-    return;
-  }
-
-  uiInfo("Déconnecté.");
-
-  // ✅ reset UI pseudo (si tu utilises initUsernameUI)
-  if (typeof initUsernameUI === "function") {
-    await initUsernameUI();
-  }
-
-  // ✅ recharger le feed (bouton delete doit disparaître, etc.)
-  if (typeof loadPublicFeed === "function") {
-    await loadPublicFeed();
-  }
-}
-
-
   // Publie la DERNIÈRE séance stockée dans ton localStorage "structured-sessions"
   async function publishLastSession() {
     uiInfo("");
 
-    const { data: authData } = await supabase.auth.getUser();
+    const { data: authData } = await supabaseClient.auth.getUser();
     console.log("AUTH USER:", authData);
 
     const user = authData?.user;
@@ -1633,7 +1617,7 @@ async function logout() {
       payload: last
     };
     console.log("INSERT PAYLOAD:", row);
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from("workout_sessions")
       .insert(row)
       .select();
@@ -1650,11 +1634,11 @@ async function logout() {
   const input = document.getElementById("public-username");
   if (!input) return;
 
-  const { data: auth } = await supabase.auth.getUser();
+  const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
   if (!user) return;
 
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseClient
     .from("user_profiles")
     .select("username")
     .eq("user_id", user.id)
@@ -1708,51 +1692,226 @@ async function logout() {
 }
 
   
-  function escapeHtml(str) {
-    return str.replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
+
+
+async function getCurrentUserId() {
+  try {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error) return null;
+    return data?.user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+
+
+async function loadPublicFeed() {
+  const container = document.getElementById("public-feed");
+  if (!container) return;
+
+  container.innerHTML = `<div style="font-size:13px;color:#666;">Chargement du feed...</div>`;
+
+  // currentUserId = null si anon (normal)
+  let currentUserId = null;
+  try {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (!error) currentUserId = data?.user?.id || null;
+  } catch (e) {
+    currentUserId = null;
   }
 
+  const { data, error } = await supabaseClient
+    .from("workout_sessions")
+    .select("id, user_id, created_at, username, session_date, payload")
+    .order("created_at", { ascending: false })
+    .limit(20);
 
-  async function loadPublicFeed() {
-    const container = document.getElementById("public-feed");
-    if (!container) return;
-
-    const { data, error } = await supabase
-      .from("workout_sessions")
-      .select("id, user_id, created_at, username, session_date, payload")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    const { data: authData } = await supabase.auth.getUser();
-    const currentUserId = authData?.user?.id || null;
-
-    if (error) {
-      container.innerHTML = `<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`;
-      return;
-    }
-
-    container.innerHTML = (data || []).map(s => renderFeedItem(s, currentUserId)).join("");
+  if (error) {
+    container.innerHTML = `<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`;
+    return;
   }
 
-    async function deleteSession(sessionId) {
-  const { error } = await supabase
+  if (!data || data.length === 0) {
+    container.innerHTML = `<div style="font-size:13px;color:#666;">Aucune séance publique pour l’instant.</div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(s => renderFeedItem(s, currentUserId)).join("");
+}
+
+
+// ---------- DELETE (feed public) ----------
+async function deleteSession(sessionId) {
+  // pas de confirm (comme tu veux)
+  const { error } = await supabaseClient
     .from("workout_sessions")
     .delete()
     .eq("id", sessionId);
 
   if (error) {
-    alert("Erreur suppression : " + error.message);
+    uiInfo("Erreur suppression : " + error.message);
     return;
   }
 
+  uiInfo("Séance supprimée.");
   await loadPublicFeed();
 }
 
+function uiInfo(msg) {
+  const el = document.getElementById("community-info");
+  if (el) el.textContent = msg || "";
+}
 
-  window.addEventListener("DOMContentLoaded", () => {
-    loadPublicFeed();
+async function updateUIFromSession() {
+  // feed toujours visible
+  await loadPublicFeed();
+
+  // si tu veux griser pseudo etc
+  const { data } = await supabaseClient.auth.getSession();
+  const session = data?.session || null;
+
+  // si connecté, on init le pseudo
+  if (session?.user && typeof initUsernameUI === "function") {
+    await initUsernameUI();
+  }
+}
+
+// LOGIN
+async function login() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return uiInfo("Erreur login : " + error.message);
+
+  uiInfo("Connecté !");
+  await updateUIFromSession();
+}
+
+// SIGNUP
+async function signup() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return uiInfo("Erreur inscription : " + error.message);
+
+  if (data?.session) {
+    uiInfo("Inscription OK + connecté.");
+  } else {
+    uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
+  }
+  await updateUIFromSession();
+}
+
+// LOGOUT (sans blocage)
+let isLoggingOut = false;
+
+async function logout() {
+  if (isLoggingOut) return;          // ✅ empêche multi-clic / appels multiples
+  isLoggingOut = true;
+
+  const btns = document.querySelectorAll('button[onclick="logout()"]');
+  btns.forEach(b => (b.disabled = true));
+
+  try {
+    uiInfo("Déconnexion...");
+
+    // ✅ timeout : si Supabase ne répond pas, on ne bloque pas l’UI
+    const signOutPromise = supabaseClient.auth.signOut();
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1000)
+    );
+
+    await Promise.race([signOutPromise, timeoutPromise]);
+
+    uiInfo("Déconnecté.");
+  } catch (e) {
+    // Si timeout, on force quand même une UI “déconnectée” côté page
+    if (e?.message === "TIMEOUT_SIGNOUT") {
+      uiInfo("Déconnecté (UI). Rafraîchis si besoin.");
+    } else {
+      uiInfo("Erreur logout : " + (e?.message || e));
+    }
+  } finally {
+    // ✅ quoi qu’il arrive, on remet l’UI à jour et on recharge le feed
+    try { await loadPublicFeed(); } catch {}
+    isLoggingOut = false;
+    btns.forEach(b => (b.disabled = false));
+  }
+}
+
+window.logout = logout;
+
+// rendre accessibles aux onclick=""
+window.login = login;
+window.signup = signup;
+window.logout = logout;
+window.loadPublicFeed = loadPublicFeed;
+
+
+// init au chargement + écoute des changements auth (login/logout sans refresh)
+window.addEventListener("DOMContentLoaded", async () => {
+  await updateUIFromSession();
+
+  supabaseClient.auth.onAuthStateChange(async () => {
+    await updateUIFromSession();
   });
+});
+
+
+
+
+</script>
+<script>
+(function () {
+  // petite console visible sur la page (utile iPhone / navigation privée)
+  const box = document.createElement("pre");
+  box.id = "diag";
+  box.style.cssText = "position:fixed;bottom:10px;left:10px;right:10px;z-index:99999;background:#fff;border:1px solid #000;padding:10px;font:12px system-ui;max-height:40vh;overflow:auto;white-space:pre-wrap;";
+  box.textContent = "DIAG...\n";
+  document.addEventListener("DOMContentLoaded", () => document.body.appendChild(box));
+
+  function log(s){ box.textContent += s + "\n"; }
+
+  window.addEventListener("error", (e) => log("JS ERROR ❌ " + (e.message || e.error)));
+  window.addEventListener("unhandledrejection", (e) => log("PROMISE ❌ " + (e.reason?.message || e.reason)));
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const c = window.supabaseClient;
+
+    log("window.supabase = " + (window.supabase ? "OK" : "UNDEF"));
+    log("window.supabaseClient = " + (c ? "OK" : "UNDEF"));
+    log("client.from = " + typeof c?.from);
+    log("client.auth = " + typeof c?.auth);
+    log("window.login = " + typeof window.login);
+    log("window.logout = " + typeof window.logout);
+
+    // test session
+    try {
+      const { data, error } = await c.auth.getSession();
+      log("getSession = " + (error ? ("ERR: " + error.message) : (data?.session ? "SESSION ✅" : "NO SESSION")));
+    } catch (e) {
+      log("getSession EXC ❌ " + e.message);
+    }
+
+    // test SELECT (feed)
+    try {
+      const { data, error } = await c.from("workout_sessions").select("id").limit(1);
+      log("SELECT = " + (error ? ("ERR: " + error.message) : ("OK rows=" + (data?.length ?? 0))));
+    } catch (e) {
+      log("SELECT EXC ❌ " + e.message);
+    }
+  });
+})();
 </script>
 
 </body>
