@@ -1,23 +1,5 @@
 <!DOCTYPE html>
 <html lang="fr">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const pre = document.createElement("pre");
-    pre.textContent =
-      "window.supabase: " + (window.supabase ? "OK" : "NO") + "\n" +
-      "window.supabaseClient: " + (window.supabaseClient ? "OK" : "NO") + "\n" +
-      "client.from: " + typeof window.supabaseClient?.from + "\n" +
-      "client.auth: " + typeof window.supabaseClient?.auth + "\n";
-    document.body.appendChild(pre);
-  });
-</script>
-
-
   
 <head>
 
@@ -32,7 +14,7 @@
     const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
 
-    // ✅ création unique du client
+    // création unique du client
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
 
@@ -549,13 +531,13 @@
       <input id="auth-pass" type="password" placeholder="••••••••">
     </label>
 
-    <button class="btn btn-secondary" type="button" onclick="signup()">
+    <button class="btn btn-secondary" type="button" onclick="signup();">
       S’inscrire
     </button>
-    <button class="btn btn-primary" type="button" onclick="login()">
+    <button class="btn btn-primary" type="button" onclick="login();">
       Se connecter
     </button>
-    <button class="btn btn-secondary" type="button" onclick="logout()">
+    <button class="btn btn-secondary" type="button" onclick="logout();">
       Déconnexion
     </button>
   </div>
@@ -1691,21 +1673,6 @@ async function getOrCreateUsername(inputUsername) {
   `;
 }
 
-  
-
-
-async function getCurrentUserId() {
-  try {
-    const { data, error } = await supabaseClient.auth.getUser();
-    if (error) return null;
-    return data?.user?.id || null;
-  } catch {
-    return null;
-  }
-}
-
-
-
 async function loadPublicFeed() {
   const container = document.getElementById("public-feed");
   if (!container) return;
@@ -1789,7 +1756,7 @@ async function login() {
   if (error) return uiInfo("Erreur login : " + error.message);
 
   uiInfo("Connecté !");
-  await updateUIFromSession();
+  //await updateUIFromSession();
 }
 
 // SIGNUP
@@ -1808,7 +1775,7 @@ async function signup() {
   } else {
     uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
   }
-  await updateUIFromSession();
+  //await updateUIFromSession();
 }
 
 // LOGOUT (sans blocage)
@@ -1848,8 +1815,6 @@ async function logout() {
     btns.forEach(b => (b.disabled = false));
   }
 }
-
-window.logout = logout;
 
 // rendre accessibles aux onclick=""
 window.login = login;
