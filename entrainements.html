@@ -1698,12 +1698,7 @@ async function logout() {
         ${exList || "<li>(séance vide)</li>"}
       </ul>
 
-      ${canDelete ? `
-        <button class="delete-session-btn" type="button" onclick="deleteSession(${s.id})">
-          Supprimer cette publication
-        </button>
-      ` : ""}
-    </div>
+      
   `;
 }
 
