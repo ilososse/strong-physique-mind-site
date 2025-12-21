@@ -1638,13 +1638,19 @@ async function getOrCreateUsername(inputUsername) {
   const d = new Date(s.session_date);
   const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
 
+  const points = computeSessionPoints(s.payload);
+  const trophy = `<span style="margin-left:8px;color:#d4af37;font-weight:700;">🏆 ${points} pts</span>`;
+
   const exList = (s.payload?.exercises || [])
     .slice(0, 6)
     .map(ex => {
       const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
         .filter(v => v !== "" && v !== null && v !== undefined)
         .join("/");
-      return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)}` : ""}</li>`;
+
+      // optionnel: unités
+      const unit = ex.mode === "hold" ? "s" : "reps";
+      return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)} ${unit}` : ""}</li>`;
     })
     .join("");
 
@@ -1653,12 +1659,14 @@ async function getOrCreateUsername(inputUsername) {
   return `
     <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
-        <strong>${escapeHtml(s.username)}</strong>
+        <strong>${escapeHtml(s.username)}${trophy}</strong>
         <span style="font-size:12px;color:#666;">${escapeHtml(dateLabel)}</span>
       </div>
+
       <div style="font-size:12px;color:#666;margin-top:4px;">
         Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
       </div>
+
       <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
         ${exList || "<li>(séance vide)</li>"}
       </ul>
@@ -1671,6 +1679,7 @@ async function getOrCreateUsername(inputUsername) {
     </div>
   `;
 }
+
 
 async function loadPublicFeed() {
   const container = document.getElementById("public-feed");
@@ -1832,6 +1841,28 @@ window.addEventListener("DOMContentLoaded", async () => {
     await updateUIFromSession();
   });
 });
+
+function computeSessionPoints(payload) {
+  const exos = payload?.exercises || [];
+  let total = 0;
+
+  for (const ex of exos) {
+    // récupère toutes les valeurs de séries
+    const vals = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .map(v => Number(v))
+      .filter(v => Number.isFinite(v) && v > 0);
+
+    if (!vals.length) continue;
+
+    const sum = vals.reduce((a, b) => a + b, 0);
+
+    // règle demandée : somme reps + somme holds, arrondis
+    // (si ex.mode === "hold" => secondes, sinon reps)
+    total += sum;
+  }
+
+  return Math.round(total);
+}
 
 
 
