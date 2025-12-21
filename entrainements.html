@@ -1795,20 +1795,22 @@ async function logout() {
     const signOutPromise = supabaseClient.auth.signOut();
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1000)
+      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 300)
     );
 
     await Promise.race([signOutPromise, timeoutPromise]);
 
     uiInfo("Déconnecté.");
   } catch (e) {
-    // Si timeout, on force quand même une UI “déconnectée” côté page
-    if (e?.message === "TIMEOUT_SIGNOUT") {
-      uiInfo("Déconnecté (UI). Rafraîchis si besoin.");
-    } else {
-      uiInfo("Erreur logout : " + (e?.message || e));
-    }
-  } finally {
+  if (e?.message === "TIMEOUT_SIGNOUT") {
+    uiInfo("Déconnecté (UI). Rechargement...");
+    window.location.reload(); // ✅ RAFRAÎCHISSEMENT AUTO
+
+  } else {
+    uiInfo("Erreur logout : " + (e?.message || e));
+  }
+}
+ finally {
     // ✅ quoi qu’il arrive, on remet l’UI à jour et on recharge le feed
     try { await loadPublicFeed(); } catch {}
     isLoggingOut = false;
