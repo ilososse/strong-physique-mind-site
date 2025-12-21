@@ -1515,14 +1515,19 @@ async function login() {
   const email = document.getElementById("auth-email").value.trim().toLowerCase();
   const password = document.getElementById("auth-pass").value.trim();
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+  email,
+  password
+});
 
-  if (error) {
-    uiInfo("Erreur login : " + error.message);
-    return;
-  }
+if (error) {
+  uiInfo("Erreur login : " + error.message);
+  console.error("Login error:", error);
+  return;
+}
 
-  uiInfo("Connecté ✅");
+uiInfo("Connecté !");
+
   await initUsernameUI(); // si tu l'as
   await loadPublicFeed();
 }
