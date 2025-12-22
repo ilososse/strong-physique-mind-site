@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="images/favicon.png">
+
+  <title>Leaderboard – Points par semaine</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { font-family: system-ui; margin: 0; background:#f7f7f7; color:#111; }
+    header { padding:16px 24px; border-bottom:1px solid #ddd; background:#fff; }
+    main { max-width: 960px; margin:0 auto; padding:24px 16px; }
+    .card { background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; box-shadow:0 2px 6px rgba(0,0,0,0.04); }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #eee; text-align:left; }
+    th { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#555; }
+    .rank { font-weight:700; width:60px; }
+    .pts { font-weight:700; color:#d4af37; white-space:nowrap; }
+    .muted { color:#666; font-size:13px; }
+    .rowme { background:#fff7da; } /* highlight optionnel */
+    .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    select { padding:8px 10px; border-radius:8px; border:1px solid #ccc; background:#fff; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <strong>✨ Leaderboard ✨</strong>
+    <div class="muted">Classement par points cumulés sur la semaine (lundi → dimanche).</div>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="controls">
+        <label class="muted">Semaine :</label>
+        <select id="week-select"></select>
+        <span id="status" class="muted"></span>
+      </div>
+
+      <div id="table-wrap"></div>
+    </div>
+  </main>
+
+  <script>
+    // --- Supabase ---
+    const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // --- utils ---
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function computeSessionPoints(payload) {
+      const exos = payload?.exercises || [];
+      let total = 0;
+      for (const ex of exos) {
+        const vals = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+          .map(v => Number(v))
+          .filter(v => Number.isFinite(v) && v > 0);
+
+        if (!vals.length) continue;
+        total += vals.reduce((a,b) => a + b, 0);
+      }
+      return Math.round(total);
+    }
+
+    // Retourne YYYY-MM-DD (date locale) du lundi de la semaine
+    function getWeekStartMonday(date) {
+      const d = new Date(date);
+      d.setHours(0,0,0,0);
+      // JS: 0=dim,1=lun,...6=sam
+      const day = d.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1 - day);
+      d.setDate(d.getDate() + diffToMonday);
+      return d;
+    }
+
+    function formatYMD(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function addDays(d, n) {
+      const x = new Date(d);
+      x.setDate(x.getDate() + n);
+      return x;
+    }
+
+    function formatRangeLabel(mondayDate) {
+      const monday = new Date(mondayDate);
+      const sunday = addDays(monday, 6);
+      return `${monday.toLocaleDateString()} → ${sunday.toLocaleDateString()}`;
+    }
+
+    // --- data fetch ---
+    // Pour démarrer simple: on charge les 500 dernières publications.
+    // Si tu veux "toutes" => on fera pagination après.
+    async function fetchSessions(limit = 500) {
+      const { data, error } = await supabaseClient
+        .from("workout_sessions")
+        .select("id, user_id, username, session_date, payload")
+        .order("session_date", { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    }
+
+    // --- leaderboard build ---
+    function buildWeeklyLeaderboards(sessions) {
+      // weekKey (YYYY-MM-DD monday) -> Map(username|user_id -> points)
+      const byWeek = new Map();
+
+      for (const s of sessions) {
+        const sessionDate = s.session_date ? new Date(s.session_date) : null;
+        if (!sessionDate || isNaN(sessionDate.getTime())) continue;
+
+        const monday = getWeekStartMonday(sessionDate);
+        const weekKey = formatYMD(monday);
+
+        const points = computeSessionPoints(s.payload);
+
+        // identifiant joueur: username prioritaire, sinon user_id
+        const playerKey = (s.username && String(s.username).trim())
+          ? `u:${String(s.username).trim()}`
+          : `id:${s.user_id}`;
+
+        if (!byWeek.has(weekKey)) byWeek.set(weekKey, new Map());
+        const map = byWeek.get(weekKey);
+
+        const prev = map.get(playerKey) || { name: s.username || "Utilisateur", points: 0 };
+        prev.points += points;
+        prev.name = s.username || prev.name;
+        map.set(playerKey, prev);
+      }
+
+      // transforme en objet lisible + tri
+      const result = {};
+      for (const [weekKey, map] of byWeek.entries()) {
+        const arr = Array.from(map.values())
+          .sort((a,b) => b.points - a.points);
+        result[weekKey] = arr;
+      }
+      return result;
+    }
+
+    function renderTable(rows) {
+      const wrap = document.getElementById("table-wrap");
+      if (!rows || rows.length === 0) {
+        wrap.innerHTML = `<div class="muted">Aucune donnée sur cette semaine.</div>`;
+        return;
+      }
+
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th>Utilisateur</th>
+              <th style="text-align:right;">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r, i) => `
+              <tr>
+                <td class="rank">${i+1}</td>
+                <td>${escapeHtml(r.name)}</td>
+                <td style="text-align:right;" class="pts">🏆 ${Math.round(r.points)} pts</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      wrap.innerHTML = html;
+    }
+
+    // --- init ---
+    (async function init() {
+      const status = document.getElementById("status");
+      const weekSelect = document.getElementById("week-select");
+
+      try {
+        status.textContent = "Chargement…";
+
+        const sessions = await fetchSessions(500);
+        const weekly = buildWeeklyLeaderboards(sessions);
+
+        const weekKeys = Object.keys(weekly).sort((a,b) => (a < b ? 1 : -1)); // récent -> ancien
+        if (weekKeys.length === 0) {
+          status.textContent = "";
+          weekSelect.innerHTML = `<option>Aucune semaine</option>`;
+          renderTable([]);
+          return;
+        }
+
+        // options de semaines
+        weekSelect.innerHTML = weekKeys.map(k => {
+          const monday = new Date(k);
+          return `<option value="${k}">${escapeHtml(formatRangeLabel(monday))}</option>`;
+        }).join("");
+
+        // default = semaine la plus récente
+        const currentKey = weekKeys[0];
+        weekSelect.value = currentKey;
+        status.textContent = `${sessions.length} séances analysées`;
+
+        renderTable(weekly[currentKey]);
+
+        weekSelect.addEventListener("change", () => {
+          renderTable(weekly[weekSelect.value]);
+        });
+
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Erreur";
+        document.getElementById("table-wrap").innerHTML =
+          `<div style="color:#a00;font-size:13px;">Erreur: ${escapeHtml(e?.message || String(e))}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>
