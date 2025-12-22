@@ -10,3 +10,9 @@
 - Documenter les facteurs qui influencent la performance (poids, taille, diététique et sommeil)
 - URGENT : RENDRE LES SEANCES DANS l'HISTORIQUE MODIFIABLES POUR POUVOIR PLANIFIER LES SEANCES !
   OU ALORS : Prévoir un espace dans la page pour y mettre le sessions futurs qu'avec les noms des exercices à faire
+
+
+Idées outils automatisés ML - plus orienté application: 
+- Système IA de dénombrement du nombre de rép à partir d'une vidéo
+- Système IA de note de la forme d'un exercice exécuté (exemple note de 1 à 10 d'un handstand, d'une planche, d'un frontlever, pompe ...)
+
