@@ -1804,7 +1804,7 @@ async function logout() {
     const signOutPromise = supabaseClient.auth.signOut();
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 300)
+      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 200)
     );
 
     await Promise.race([signOutPromise, timeoutPromise]);
