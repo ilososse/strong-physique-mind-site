@@ -11,6 +11,7 @@
 - URGENT : RENDRE LES SEANCES DANS l'HISTORIQUE MODIFIABLES POUR POUVOIR PLANIFIER LES SEANCES !
   OU ALORS : Prévoir un espace dans la page pour y mettre le sessions futurs qu'avec les noms des exercices à faire
 
+-Il me manque des photos pour rendre le site plus joli et moins imbitable 
 
 Idées outils automatisés ML - plus orienté application: 
 - Système IA de dénombrement du nombre de rép à partir d'une vidéo
