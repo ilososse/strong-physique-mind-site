@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Do a chin-up</title>
+
+
+    <meta name="title" content="Do a chin-up" />
+    <meta name="description" content="body movement webgame" />
+
+    <meta property="og:title" content="Do a chin-up" />
+    <meta property="og:description" content="body movement webgame" />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Do a chin-up" />
+    <meta property="twitter:description" content="body movement webgame" />
+
+    <script
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="376d8af4-cd09-461a-9ca9-f5eeed83e857"
+    ></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://esm.sh/three@0.161.0?dev",
+          "three/": "https://esm.sh/three@0.161.0&dev/"
+        }
+      }
+    </script>
+    <script type="module" crossorigin src="/counter/assets/launcher-WFh25Pi_.js"></script>
+    <link rel="stylesheet" crossorigin href="/counter/assets/launcher-D6fHnjiz.css">
+  </head>
+
+  <body>
+    <div id="renderDiv">
+      <video id="videoElement" autoplay muted playsinline></video>
+
+      <div id="fireContainer"></div>
+
+      <div id="startScreenOverlay">
+        <div class="text-container">
+          <h1>Chin-up exercise rep real time counter !</h1>
+          <p>
+            > enable camera access<br />
+            > position yourself so your upper body is visible<br />
+          </p>
+          <p id="loadingText">Loading camera and pose detection...</p>
+          <button id="startButton">START</button>
+        </div>
+      </div>
+
+      <div id="counterContainer" class="text-box">
+        <div id="counterDisplay">Reps</div>
+      </div>
+
+      <!-- ✅ Weight input INSIDE renderDiv -->
+      <input
+        id="weightKgInput"
+        type="number"
+        step="0.5"
+        min="0"
+        placeholder="Lest (kg)"
+      />
+
+      <div id="gameOverContainer">
+        <div id="gameOverText">STATUS</div>
+        <div id="restartHintText">(click to restart tracking)</div>
+      </div>
+    </div>
+
+  </body>
+</html>
