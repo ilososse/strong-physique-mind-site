@@ -1509,10 +1509,6 @@ function escapeHtml(str) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
-  function uiInfo(msg) {
-    const el = document.getElementById("community-info");
-    if (el) el.textContent = msg || "";
-  }
 
 
 
@@ -1606,26 +1602,44 @@ async function getOrCreateUsername(inputUsername) {
     await loadPublicFeed();
   }
   
-  async function initUsernameUI() {
+async function initUsernameUI() {
   const input = document.getElementById("public-username");
   if (!input) return;
 
+  // ✅ RESET UI (important)
+  input.disabled = false;
+  input.title = "";
+  // (optionnel) si tu veux éviter de garder un ancien pseudo affiché
+  // input.value = "";
+
+  // si pas connecté, on laisse l'input libre
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
   if (!user) return;
 
-  const { data: profile } = await supabaseClient
+  const { data: profile, error } = await supabaseClient
     .from("user_profiles")
     .select("username")
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (error) {
+    console.warn("initUsernameUI profile read error:", error);
+    return;
+  }
+
+  // ✅ si username déjà défini -> lock
   if (profile?.username) {
     input.value = profile.username;
     input.disabled = true;
     input.title = "Pseudo définitif";
+  } else {
+    // ✅ sinon -> input libre (nouvel user)
+    // optionnel : vide l'ancien pseudo affiché
+    input.value = "";
   }
 }
+
  window.addEventListener("DOMContentLoaded", initUsernameUI);
 
 
@@ -1676,38 +1690,73 @@ async function getOrCreateUsername(inputUsername) {
 }
 
 
-async function loadPublicFeed() {
+let __feedSeq = 0;
+let __feedInFlight = null;
+
+function withTimeout(p, ms, code = "FEED_TIMEOUT") {
+  let t;
+  const timeout = new Promise((_, rej) => {
+    t = setTimeout(() => rej(new Error(code)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(t));
+}
+
+async function loadPublicFeed({ force = false } = {}) {
   const container = document.getElementById("public-feed");
   if (!container) return;
 
+  if (__feedInFlight && !force) return __feedInFlight;
+
+  const mySeq = ++__feedSeq;
   container.innerHTML = `<div style="font-size:13px;color:#666;">Chargement du feed...</div>`;
 
-  // currentUserId = null si anon (normal)
-  let currentUserId = null;
-  try {
-    const { data, error } = await supabaseClient.auth.getUser();
-    if (!error) currentUserId = data?.user?.id || null;
-  } catch (e) {
-    currentUserId = null;
-  }
+  const commit = (html) => {
+    if (mySeq !== __feedSeq) return; // ignore réponse obsolète
+    container.innerHTML = html;
+  };
 
-  const { data, error } = await supabaseClient
-    .from("workout_sessions")
-    .select("id, user_id, created_at, username, session_date, payload")
-    .order("created_at", { ascending: false })
-    .limit(20);
+  __feedInFlight = (async () => {
+    try {
+      // 1) User (peut hang après retour d’onglet)
+      let currentUserId = null;
+      try {
+        const { data, error } = await withTimeout(supabaseClient.auth.getUser(), 1200, "AUTH_TIMEOUT");
+        if (!error) currentUserId = data?.user?.id || null;
+      } catch (_) {
+        currentUserId = null;
+      }
 
-  if (error) {
-    container.innerHTML = `<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`;
-    return;
-  }
+      // 2) Feed (peut hang / réseau)
+      const { data, error } = await withTimeout(
+        supabaseClient
+          .from("workout_sessions")
+          .select("id, user_id, created_at, username, session_date, payload")
+          .order("created_at", { ascending: false })
+          .limit(20),
+        2500,
+        "FEED_TIMEOUT"
+      );
 
-  if (!data || data.length === 0) {
-    container.innerHTML = `<div style="font-size:13px;color:#666;">Aucune séance publique pour l’instant.</div>`;
-    return;
-  }
+      if (error) {
+        commit(`<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`);
+        return;
+      }
 
-  container.innerHTML = data.map(s => renderFeedItem(s, currentUserId)).join("");
+      if (!data || data.length === 0) {
+        commit(`<div style="font-size:13px;color:#666;">Aucune séance publique pour l’instant.</div>`);
+        return;
+      }
+
+      commit(data.map(s => renderFeedItem(s, currentUserId)).join(""));
+    } catch (e) {
+      // ✅ au lieu de rester sur “Chargement…”
+      commit(`<div style="font-size:13px;color:#a00;">Feed indisponible (${escapeHtml(e?.message || String(e))})</div>`);
+    } finally {
+      if (mySeq === __feedSeq) __feedInFlight = null;
+    }
+  })();
+
+  return __feedInFlight;
 }
 
 
@@ -1733,19 +1782,51 @@ function uiInfo(msg) {
   if (el) el.textContent = msg || "";
 }
 
+let __uiUpdating = false;
+
 async function updateUIFromSession() {
-  // feed toujours visible
-  await loadPublicFeed();
+  if (__uiUpdating) return;
+  __uiUpdating = true;
+  try {
+    await loadPublicFeed({ force: true });
 
-  // si tu veux griser pseudo etc
-  const { data } = await supabaseClient.auth.getSession();
-  const session = data?.session || null;
-
-  // si connecté, on init le pseudo
-  if (session?.user && typeof initUsernameUI === "function") {
-    await initUsernameUI();
+    const { data } = await supabaseClient.auth.getSession();
+    if (data?.session?.user && typeof initUsernameUI === "function") {
+      await initUsernameUI();
+    }
+  } finally {
+    __uiUpdating = false;
   }
 }
+
+function bindAuthListenerOnce() {
+  if (window.__authListenerBound) return;
+  window.__authListenerBound = true;
+
+  supabaseClient.auth.onAuthStateChange(() => {
+    // pas de await ici -> évite blocages/timing foireux
+    updateUIFromSession();
+  });
+}
+
+function bindVisibilityRefresh() {
+  if (window.__visibilityBound) return;
+  window.__visibilityBound = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadPublicFeed({ force: true });
+  });
+
+  window.addEventListener("focus", () => {
+    loadPublicFeed({ force: true });
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  bindAuthListenerOnce();
+  bindVisibilityRefresh();
+  updateUIFromSession();
+});
 
 // LOGIN
 async function login() {
@@ -1759,7 +1840,7 @@ async function login() {
   if (error) return uiInfo("Erreur login : " + error.message);
 
   uiInfo("Connecté !");
-  //await updateUIFromSession();
+  updateUIFromSession();
 }
 
 // SIGNUP
@@ -1778,7 +1859,7 @@ async function signup() {
   } else {
     uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
   }
-  //await updateUIFromSession();
+  updateUIFromSession();
 }
 
 // LOGOUT (sans blocage)
@@ -1798,7 +1879,7 @@ async function logout() {
     const signOutPromise = supabaseClient.auth.signOut();
 
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 200)
+      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1200)
     );
 
     await Promise.race([signOutPromise, timeoutPromise]);
@@ -1827,15 +1908,6 @@ window.signup = signup;
 window.logout = logout;
 window.loadPublicFeed = loadPublicFeed;
 
-
-// init au chargement + écoute des changements auth (login/logout sans refresh)
-window.addEventListener("DOMContentLoaded", async () => {
-  await updateUIFromSession();
-
-  supabaseClient.auth.onAuthStateChange(async () => {
-    await updateUIFromSession();
-  });
-});
 
 function computeSessionPoints(payload) {
   const exos = payload?.exercises || [];
