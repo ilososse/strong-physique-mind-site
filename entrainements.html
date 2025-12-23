@@ -267,6 +267,27 @@
       background: #000;
       color: #fff;
     }
+    .btn-auto-save{
+      display:flex; gap:10px; align-items:center;
+      padding:4px 8px;
+      border-radius:12px;
+      border:1px solid rgba(0, 0, 0, 0);
+      background: linear-gradient(135deg, #111827, #000000);
+      color:white;
+      font-weight:500;
+      cursor:pointer;
+    }
+    .btn-auto-save:hover{ transform: translateY(-1px); }
+    .badge-new{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+      background:#ff2d2d;
+      color:white;
+      letter-spacing:0.5px;
+    }
 
     .remove-row-btn {
       border: none;
@@ -551,7 +572,14 @@
     <button class="btn btn-primary" type="button" onclick="publishLastSession()">
       Publier ma dernière séance
     </button>
+      <div class="top-right-actions">
+    <button id="autoSaveBtn" class="btn-auto-save">
+      <span class="badge-new">LIVE</span>
+      Enregistrer une séance automatiquement en DIRECT
+    </button>
   </div>
+  </div>
+
 
   <div class="info" id="community-info"></div>
 
@@ -1932,6 +1960,32 @@ function computeSessionPoints(payload) {
 }
 
 
+document.getElementById("autoSaveBtn").addEventListener("click", async () => {
+  const { data: authData } = await supabaseClient.auth.getUser();
+  const user = authData?.user;
+  if (!user) {
+    alert("Tu dois être connecté.");
+    return;
+  }
+
+  // (Optionnel) username stocké quelque part
+  // sinon tu peux passer juste user.id, et fetch username côté app.
+  const username = user.user_metadata?.username || "";
+
+  // Exemple : tu peux pré-remplir exercice / mode depuis le site
+  const ctx = {
+    userId: user.id,
+    username,
+    exercise: "Tractions",
+    mode: "pullups",
+    // tu peux aussi passer une date de séance ou laisser l’app la mettre
+    sessionDate: new Date().toISOString().slice(0,10),
+  };
+
+  const encoded = encodeURIComponent(btoa(JSON.stringify(ctx)));
+  // ouvre la page tool
+  window.location.href = `/counter/launcher.html?ctx=${encoded}`;
+});
 
 
 </script>

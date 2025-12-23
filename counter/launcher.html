@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Do a chin-up</title>
@@ -29,8 +31,8 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="/counter/assets/launcher-WFh25Pi_.js"></script>
-    <link rel="stylesheet" crossorigin href="/counter/assets/launcher-D6fHnjiz.css">
+    <script type="module" crossorigin src="/counter/assets/launcher-Cb6NreCB.js"></script>
+    <link rel="stylesheet" crossorigin href="/counter/assets/launcher-xps1jG6h.css">
   </head>
 
   <body>
@@ -50,6 +52,11 @@
           <button id="startButton">START</button>
         </div>
       </div>
+
+      <button id="saveSessionBtn" style="display:none; position:fixed; bottom:20px; right:20px;">
+        Sauvegarder la séance
+      </button>
+
 
       <div id="counterContainer" class="text-box">
         <div id="counterDisplay">Reps</div>
