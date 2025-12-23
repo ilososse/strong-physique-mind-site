@@ -8,21 +8,6 @@
     <title>Do a chin-up</title>
 
 
-    <meta name="title" content="Do a chin-up" />
-    <meta name="description" content="body movement webgame" />
-
-    <meta property="og:title" content="Do a chin-up" />
-    <meta property="og:description" content="body movement webgame" />
-
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Do a chin-up" />
-    <meta property="twitter:description" content="body movement webgame" />
-
-    <script
-      defer
-      src="https://cloud.umami.is/script.js"
-      data-website-id="376d8af4-cd09-461a-9ca9-f5eeed83e857"
-    ></script>
     <script type="importmap">
       {
         "imports": {
@@ -31,15 +16,13 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="/counter/assets/launcher-C4kUcSiH.js"></script>
-    <link rel="stylesheet" crossorigin href="/counter/assets/launcher-TXqWTH9l.css">
+    <script type="module" crossorigin src="/counter/assets/launcher-NasGhQVU.js"></script>
+    <link rel="stylesheet" crossorigin href="/counter/assets/launcher-ClS7hMQe.css">
   </head>
 
   <body>
     <div id="renderDiv">
       <video id="videoElement" autoplay muted playsinline></video>
-
-      <div id="fireContainer"></div>
 
       <div id="startScreenOverlay">
         <div class="text-container">
@@ -53,16 +36,18 @@
         </div>
       </div>
 
-      <button id="saveSessionBtn" style="display:none; position:fixed; bottom:20px; right:20px;">
+      <!-- ✅ Save button (fixe) -->
+      <button
+        id="saveSessionBtn"
+        style="display:none; position:fixed; bottom:20px; right:20px; z-index:9999;"
+      >
         Sauvegarder la séance
       </button>
-
 
       <div id="counterContainer" class="text-box">
         <div id="counterDisplay">Reps</div>
       </div>
 
-      <!-- ✅ Weight input INSIDE renderDiv -->
       <input
         id="weightKgInput"
         type="number"
@@ -71,13 +56,15 @@
         placeholder="Lest (kg)"
       />
 
+      <!-- ✅ Status overlay -->
       <div id="gameOverContainer">
         <div id="gameOverText">STATUS</div>
-        <button id="restartSetBtn">
-          ▶ Relancer un set
+
+        <!-- ✅ Restart button (au lieu du click anywhere) -->
+        <button id="restartSetBtn" style="display:none; margin-top:12px;">
+          Recommencer un set
         </button>
       </div>
-      
     </div>
 
   </body>
