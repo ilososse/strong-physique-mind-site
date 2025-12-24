@@ -380,11 +380,11 @@
 }
 
 #sessions-history > .session-card {
-  flex: 0 0 320px;
+  flex: 0 0 400px;
   scroll-snap-align: start;
 }
 
-    #sessions-history {
+#sessions-history {
   display: flex;
   gap: 12px;
   overflow-x: auto;
@@ -802,65 +802,7 @@
 
       <div class="info" id="dashboard-info"></div>
     </section>
-
-
-
-    <!-- JOURNAL LIBRE -->
-    <section>
-      <h2 class="section-title">Journal d’évolution libre</h2>
-      <p style="font-size: 14px; color:#555;">
-        Utilise cet espace comme un carnet personnel : note ce que tu observes en toi
-        selon le niveau que tu explores (débutant, intermédiaire, avancé).
-        C’est stocké uniquement dans ton navigateur.
-      </p>
-
-      <div class="nav-posts">
-        <button onclick="showPost(1)" id="btn-post-1">Journal – Niveau débutant</button>
-        <button onclick="showPost(2)" id="btn-post-2">Journal – Niveau intermédiaire</button>
-        <button onclick="showPost(3)" id="btn-post-3">Journal – Niveau avancé / pro</button>
-        <button onclick="showPost(4)" id="btn-post-4">Notes libres</button>
-      </div>
-
-      <section class="post" id="post-1">
-        <h3>Journal – Niveau débutant</h3>
-        <textarea id="textarea-1" placeholder="Comment ton corps réagit-il aux bases ? Ressenti sur la respiration, la technique, la confiance, la régularité…"></textarea>
-        <div class="post-actions">
-          <button class="btn-reset" onclick="resetPost(1)">Réinitialiser</button>
-          <button class="btn-save" onclick="savePost(1)">Enregistrer</button>
-        </div>
-        <div class="info" id="info-1"></div>
-      </section>
-
-      <section class="post" id="post-2">
-        <h3>Journal – Niveau intermédiaire</h3>
-        <textarea id="textarea-2" placeholder="Qu’est-ce qui devient plus facile ? Où sont les blocages ? Comment évolue ta motivation, ton rapport aux séances…"></textarea>
-        <div class="post-actions">
-          <button class="btn-reset" onclick="resetPost(2)">Réinitialiser</button>
-          <button class="btn-save" onclick="savePost(2)">Enregistrer</button>
-        </div>
-        <div class="info" id="info-2"></div>
-      </section>
-
-      <section class="post" id="post-3">
-        <h3>Journal – Niveau avancé / pro</h3>
-        <textarea id="textarea-3" placeholder="Quelles sont les difficultés mentales liées aux skills ? Frustration, perfectionnisme, ego, gestion de la fatigue…"></textarea>
-        <div class="post-actions">
-          <button class="btn-reset" onclick="resetPost(3)">Réinitialiser</button>
-          <button class="btn-save" onclick="savePost(3)">Enregistrer</button>
-        </div>
-        <div class="info" id="info-3"></div>
-      </section>
-
-      <section class="post" id="post-4">
-        <h3>Notes libres</h3>
-        <textarea id="textarea-4" placeholder="Idées, objectifs, prises de conscience, scripts de contenu, choses que tu veux garder en mémoire…"></textarea>
-        <div class="post-actions">
-          <button class="btn-reset" onclick="resetPost(4)">Réinitialiser</button>
-          <button class="btn-save" onclick="savePost(4)">Enregistrer</button>
-        </div>
-        <div class="info" id="info-4"></div>
-      </section>
-    </section>
+  
   </main>
 
 
@@ -868,57 +810,230 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
+<script>
+/* =========================================================
+   CalisthenicsAmbition – entrainements.html (FULL SCRIPT)
+   - Supabase v2 via window.supabaseClient (déjà créé dans <head>)
+   - Smooth UI: cache sessions + scheduler + anti double-render chart
+   ========================================================= */
 
-  <script>
-    /* ---------- JOURNAL STRUCTURÉ ---------- */
+/* ---------- CONFIG / HELPERS ---------- */
 
-    // Exercices à répétitions et à hold
-    const REPS_EXERCISES = [
-      "Tractions",
-      "Pompes",
-      "Dips",
-      "Handstand Push Up",
-      "Muscle Up",
-    ];
+const supabaseClient = window.supabaseClient;
+if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
+  console.error("Supabase client invalide", supabaseClient);
+}
 
-    const HOLD_EXERCISES = [
-      "Planche lean",
-      "Tuck planche",
-      "Straddle planche",
-      "Full planche",
-      "Handstand",
-      "One Arm Handstand",
-      "Human Flag",
-      "Front Lever",
-      "Tuck planche",
-    ];
-    
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
-console.log("CHECK auth =", supabaseClient.auth);
+function uiInfo(msg) {
+  const el = document.getElementById("community-info");
+  if (el) el.textContent = msg || "";
+}
 
+function normalizeTodayISODate() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-    function isHoldExercise(name) {
-      if (isCustomHoldSelected()) return true;
-      return HOLD_EXERCISES.includes(name);
-    }
+async function getAuthedUserOrWarn(infoEl) {
+  const { data, error } = await supabaseClient.auth.getUser();
+  if (error) {
+    console.error("[auth] getUser error", error);
+    infoEl && (infoEl.textContent = "❌ Erreur auth (voir console).");
+    return null;
+  }
+  if (!data?.user) {
+    infoEl && (infoEl.textContent = "⚠️ Connecte-toi pour enregistrer et voir tes séances.");
+    return null;
+  }
+  return data.user;
+}
 
-    function getSelectedExerciseName() {
-      const exerciseSelect = document.getElementById("dashboard-exercise");
-      const customInput = document.getElementById("custom-exercise");
-      if (!exerciseSelect) return "";
+/* ---------- EXERCISES ---------- */
 
-      const v = exerciseSelect.value;
-      if (v === "__custom_reps__" || v === "__custom_hold__") {
-        return (customInput?.value || "").trim();
-      }
-      return v;
-    }
+const REPS_EXERCISES = [
+  "Tractions","Pompes","Dips","Handstand Push Up","Muscle Up",
+];
+
+const HOLD_EXERCISES = [
+  "Planche lean","Tuck planche","Straddle planche","Full planche",
+  "Handstand","One Arm Handstand","Human Flag","Front Lever",
+];
 
 function isCustomHoldSelected() {
   const exerciseSelect = document.getElementById("dashboard-exercise");
   return exerciseSelect?.value === "__custom_hold__";
 }
 
+function isHoldExercise(name) {
+  if (isCustomHoldSelected()) return true;
+  return HOLD_EXERCISES.includes(name);
+}
+
+function getSelectedExerciseName() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const customInput = document.getElementById("custom-exercise");
+  if (!exerciseSelect) return "";
+
+  const v = exerciseSelect.value;
+  if (v === "__custom_reps__" || v === "__custom_hold__") {
+    return (customInput?.value || "").trim();
+  }
+  return v;
+}
+
+/* =========================================================
+   SMOOTH UI CORE: cache + scheduler + anti spam refresh
+   ========================================================= */
+
+let __uiBusy = false;
+let __uiSeq = 0;
+
+let __sessionsCache = [];
+let __sessionsCacheUserId = null;
+let __sessionsCacheAt = 0;
+
+let __chartSeq = 0;
+let __feedSeq = 0;
+let __feedInFlight = null;
+
+function debounce(fn, wait = 120) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+
+function isSessionsCacheFresh() {
+  return (Date.now() - __sessionsCacheAt) < 15000; // 15s
+}
+
+async function fetchSessionsIntoCache({ force = false } = {}) {
+  const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
+  if (authErr) {
+    console.error("[cache] auth error", authErr);
+    return __sessionsCache || [];
+  }
+
+  const user = authData?.user;
+  if (!user) {
+    __sessionsCache = [];
+    __sessionsCacheUserId = null;
+    __sessionsCacheAt = Date.now();
+    return __sessionsCache;
+  }
+
+  if (!force && __sessionsCacheUserId === user.id && isSessionsCacheFresh()) {
+    return __sessionsCache;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("workout_sessions")
+    .select("id, session_date, payload, created_at")
+    .eq("user_id", user.id)
+    .order("session_date", { ascending: true });
+
+  if (error) {
+    console.error("[cache] fetch sessions error", error);
+    return __sessionsCache || [];
+  }
+
+  __sessionsCache = (data || [])
+    .map(r => ({ id: r.id, ...(r.payload || {}) }))
+    .filter(s => s && s.date);
+
+  __sessionsCacheUserId = user.id;
+  __sessionsCacheAt = Date.now();
+  return __sessionsCache;
+}
+
+async function getStructuredSessions() {
+  return await fetchSessionsIntoCache({ force: false });
+}
+
+function clearPrivateUI() {
+  // history
+  const hist = document.getElementById("sessions-history");
+  if (hist) hist.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+
+  // save info
+  const info = document.getElementById("session-save-info");
+  if (info) info.textContent = "";
+
+  // username input
+  const input = document.getElementById("public-username");
+  if (input) {
+    input.disabled = false;
+    input.title = "";
+    input.value = "";
+  }
+
+  // dashboard
+  const dashInfo = document.getElementById("dashboard-info");
+  if (dashInfo) dashInfo.textContent = "Connecte-toi pour voir ton tableau de bord.";
+
+  if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+
+  // reset cache
+  __sessionsCache = [];
+  __sessionsCacheUserId = null;
+  __sessionsCacheAt = Date.now();
+}
+
+const scheduleUIRefresh = (() => {
+  const run = async ({ forceSessions = false, forceFeed = false } = {}) => {
+    if (__uiBusy) return;
+    __uiBusy = true;
+    const my = ++__uiSeq;
+
+    try {
+      // feed (public)
+      if (forceFeed) await loadPublicFeed({ force: true });
+      else await loadPublicFeed();
+
+      // user session
+      const { data: sessData } = await supabaseClient.auth.getSession();
+      const user = sessData?.session?.user || null;
+
+      if (!user) {
+        clearPrivateUI();
+        return;
+      }
+
+      // username UI lock
+      if (typeof initUsernameUI === "function") {
+        await initUsernameUI();
+        if (my !== __uiSeq) return;
+      }
+
+      // cache sessions once
+      await fetchSessionsIntoCache({ force: forceSessions });
+      if (my !== __uiSeq) return;
+
+      // render private UI from cache only (no network)
+      await renderStructuredSessionsHistory({ useCache: true });
+      if (my !== __uiSeq) return;
+
+      await renderExerciseChart();
+    } finally {
+      __uiBusy = false;
+    }
+  };
+
+  return debounce(run, 120);
+})();
+
+/* =========================================================
+   STRUCTURED LOG (table)
+   ========================================================= */
 
 function createExerciseRow(data) {
   const tr = document.createElement("tr");
@@ -943,14 +1058,8 @@ function createExerciseRow(data) {
         <option value="__custom_reps__">Autre... (Reps)</option>
         <option value="__custom_hold__">Autre... (Hold)</option>
       </select>
-      <input
-    type="text"
-    class="ex-custom"
-    placeholder="Nom de l'exercice…"
-    style="display:none; margin-top:6px;"
-  />
-</td>
-
+      <input type="text" class="ex-custom" placeholder="Nom de l'exercice…"
+        style="display:none; margin-top:6px;" />
     </td>
     <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
     <td><input type="number" class="ex-s1" min="0" step="1" value="${data?.s1 || ""}"></td>
@@ -961,57 +1070,52 @@ function createExerciseRow(data) {
     <td><input type="number" class="ex-s6" min="0" step="1" value="${data?.s6 || ""}"></td>
     <td><input type="number" class="ex-s7" min="0" step="1" value="${data?.s7 || ""}"></td>
     <td><input type="number" class="ex-s8" min="0" step="1" value="${data?.s8 || ""}"></td>
-
     <td><input type="text" class="ex-ressenti" placeholder="Ressenti global" value="${data?.ressenti || ""}"></td>
     <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
   `;
 
-const select = tr.querySelector(".ex-name");
-const custom = tr.querySelector(".ex-custom");
+  const select = tr.querySelector(".ex-name");
+  const custom = tr.querySelector(".ex-custom");
 
-function syncRowCustom() {
-  const v = select.value;
-  const isCustom = (v === "__custom_reps__" || v === "__custom_hold__");
-  custom.style.display = isCustom ? "block" : "none";
-  if (!isCustom) custom.value = "";
-}
+  function syncRowCustom() {
+    const v = select.value;
+    const isCustom = (v === "__custom_reps__" || v === "__custom_hold__");
+    custom.style.display = isCustom ? "block" : "none";
+    if (!isCustom) custom.value = "";
+  }
 
-select.addEventListener("change", () => {
+  select.addEventListener("change", syncRowCustom);
   syncRowCustom();
-});
-
-syncRowCustom();
-
 
   if (data?.name) {
     tr.querySelector(".ex-name").value = data.name;
+    syncRowCustom();
   }
 
   return tr;
 }
 
+function addExerciseRow(prefillData) {
+  const tbody = document.getElementById("session-rows");
+  if (!tbody) return;
+  tbody.appendChild(createExerciseRow(prefillData));
+}
 
+function removeExerciseRow(btn) {
+  const tr = btn.closest("tr");
+  if (tr) tr.remove();
+}
 
-    function addExerciseRow(prefillData) {
-      const tbody = document.getElementById("session-rows");
-      tbody.appendChild(createExerciseRow(prefillData));
-    }
-
-    function removeExerciseRow(btn) {
-      const tr = btn.closest("tr");
-      if (tr) tr.remove();
-    }
-
-function saveStructuredSession() {
+async function saveStructuredSession() {
   const dateInput = document.getElementById("session-date");
   const durationInput = document.getElementById("session-duration");
   const rows = document.querySelectorAll("#session-rows tr");
   const info = document.getElementById("session-save-info");
 
-  if (!dateInput.value) {
-    const today = new Date();
-    dateInput.value = today.toISOString().slice(0, 10);
-  }
+  const user = await getAuthedUserOrWarn(info);
+  if (!user) return;
+
+  if (!dateInput.value) dateInput.value = normalizeTodayISODate();
 
   const session = {
     date: dateInput.value,
@@ -1019,79 +1123,85 @@ function saveStructuredSession() {
     exercises: []
   };
 
-        rows.forEach(row => {
-        const selectVal = row.querySelector(".ex-name").value;
-        const customVal = (row.querySelector(".ex-custom")?.value || "").trim();
+  rows.forEach(row => {
+    const selectVal = row.querySelector(".ex-name")?.value || "";
+    const customVal = (row.querySelector(".ex-custom")?.value || "").trim();
 
-        const isCustomReps = selectVal === "__custom_reps__";
-        const isCustomHold = selectVal === "__custom_hold__";
-        const isCustom = isCustomReps || isCustomHold;
+    const isCustomReps = selectVal === "__custom_reps__";
+    const isCustomHold = selectVal === "__custom_hold__";
+    const isCustom = isCustomReps || isCustomHold;
 
-        // nom affiché
-        const name = isCustom ? customVal : selectVal;
+    const name = isCustom ? customVal : selectVal;
 
-        // type pour unités/métriques
-        const mode = isCustom
-          ? (isCustomHold ? "hold" : "reps")
-          : (isHoldExercise(selectVal) ? "hold" : "reps");
+    const mode = isCustom
+      ? (isCustomHold ? "hold" : "reps")
+      : (isHoldExercise(selectVal) ? "hold" : "reps");
 
-        // (optionnel mais conseillé) si custom et vide, ne pas enregistrer la ligne
-        if (isCustom && !name) return;
+    if (isCustom && !name) return;
 
-        const weight = row.querySelector(".ex-weight")?.value || "0";
-        const s1 = row.querySelector(".ex-s1").value;
-        const s2 = row.querySelector(".ex-s2").value;
-        const s3 = row.querySelector(".ex-s3").value;
-        const s4 = row.querySelector(".ex-s4").value;
-        const s5 = row.querySelector(".ex-s5").value;
-        const s6 = row.querySelector(".ex-s6").value;
-        const s7 = row.querySelector(".ex-s7").value;
-        const s8 = row.querySelector(".ex-s8").value;
-        const ressenti = row.querySelector(".ex-ressenti").value.trim();
+    const weight = row.querySelector(".ex-weight")?.value || "0";
+    const s1 = row.querySelector(".ex-s1")?.value || "";
+    const s2 = row.querySelector(".ex-s2")?.value || "";
+    const s3 = row.querySelector(".ex-s3")?.value || "";
+    const s4 = row.querySelector(".ex-s4")?.value || "";
+    const s5 = row.querySelector(".ex-s5")?.value || "";
+    const s6 = row.querySelector(".ex-s6")?.value || "";
+    const s7 = row.querySelector(".ex-s7")?.value || "";
+    const s8 = row.querySelector(".ex-s8")?.value || "";
+    const ressenti = (row.querySelector(".ex-ressenti")?.value || "").trim();
 
-        if (name || s1 || s2 || s3 || s4 || ressenti || weight !== "0") {
-          session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
-        }
-      });
+    if (name || s1 || s2 || s3 || s4 || s5 || s6 || s7 || s8 || ressenti || weight !== "0") {
+      session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
+    }
+  });
 
-      const key = "structured-sessions";
-      const existingRaw = localStorage.getItem(key);
-      const existing = existingRaw ? JSON.parse(existingRaw) : [];
-      existing.push(session);
-      localStorage.setItem(key, JSON.stringify(existing));
+  const row = {
+    user_id: user.id,
+    username: (user.user_metadata?.username || user.user_metadata?.name || user.email || "").toString(),
+    session_date: session.date,
+    payload: session
+  };
 
-      const d = new Date(session.date);
-      const formatted = d.toLocaleDateString();
-      info.textContent = `Séance enregistrée pour le ${formatted} (stockée dans ce navigateur).`;
+  info && (info.textContent = "⏳ Enregistrement Supabase...");
 
-      renderStructuredSessionsHistory(); // nouveau
-      renderExerciseChart();
-
-}
-function renderStructuredSessionsHistory() {
-  const container = document.getElementById("sessions-history");
-  if (!container) return;
-
-  const raw = localStorage.getItem("structured-sessions");
-  if (!raw) {
-    container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+  const { error } = await supabaseClient.from("workout_sessions").insert([row]);
+  if (error) {
+    console.error("[save] supabase insert error", error);
+    info && (info.textContent = "❌ Erreur Supabase (voir console).");
     return;
   }
 
-  let sessions = getStructuredSessions();
+  const d = new Date(session.date);
+  const formatted = isNaN(d.getTime()) ? session.date : d.toLocaleDateString();
+  info && (info.textContent = `✅ Séance enregistrée pour le ${formatted} (Supabase).`);
+
+  // ✅ Smooth: one scheduled refresh
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+/* history render from cache (smooth) */
+async function renderStructuredSessionsHistory({ useCache = false } = {}) {
+  const container = document.getElementById("sessions-history");
+  if (!container) return;
+
+  const { data: sessData } = await supabaseClient.auth.getSession();
+  const user = sessData?.session?.user || null;
+
+  if (!user) {
+    container.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+    return;
+  }
+
+  const sessions = useCache ? (__sessionsCache || []) : await fetchSessionsIntoCache({ force: true });
 
   if (!sessions.length) {
     container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
     return;
   }
 
-  // on affiche de la plus récente à la plus ancienne
-  const reversed = sessions.slice().reverse();
   let html = "";
 
-  reversed.forEach((s, idx) => {
-    const originalIndex = sessions.length - 1 - idx; // ✅ index réel dans localStorage
-
+  sessions.slice().reverse().forEach((s) => {
     const d = new Date(s.date);
     const dateStr = isNaN(d.getTime()) ? (s.date || "") : d.toLocaleDateString();
 
@@ -1109,31 +1219,25 @@ function renderStructuredSessionsHistory() {
 
         <ul class="session-card-exos">
           ${
-            (s.exercises || [])
-              .map(ex => {
-                const name = escapeHtml(ex.name || "Exercice");
+            (s.exercises || []).map(ex => {
+              const name = escapeHtml(ex.name || "Exercice");
+              const weightStr = ex.weight !== undefined && ex.weight !== null ? String(ex.weight) : "0";
+              const lest = (weightStr && weightStr !== "0") ? ` (lest : ${escapeHtml(weightStr)} kg)` : "";
 
-                const weightStr = ex.weight !== undefined && ex.weight !== null ? String(ex.weight) : "0";
-                const lest = (weightStr && weightStr !== "0") ? ` (lest : ${escapeHtml(weightStr)} kg)` : "";
+              const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+                .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
+                .join(" / ");
 
-                const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-                  .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
-                  .join(" / ");
+              const unit = ex.mode === "hold" ? "s" : "reps";
+              const seriesText = series ? ` – ${escapeHtml(series)} ${unit}` : "";
+              const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
 
-                const unit = ex.mode === "hold" ? "s" : "reps";
-                const seriesText = series ? ` – ${escapeHtml(series)} ${unit}` : "";
-
-
-
-                const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
-
-                return `<li>${name}${lest}${seriesText}${ressenti}</li>`;
-              })
-              .join("")
+              return `<li>${name}${lest}${seriesText}${ressenti}</li>`;
+            }).join("")
           }
         </ul>
 
-        <button class="delete-session-btn" type="button" onclick="deleteSessionHistory(${originalIndex})">
+        <button class="delete-session-btn" type="button" onclick="deleteSessionHistory(${s.id})">
           Supprimer cette séance
         </button>
       </div>
@@ -1143,414 +1247,347 @@ function renderStructuredSessionsHistory() {
   container.innerHTML = html;
 }
 
+async function deleteSessionHistory(id) {
+  const info = document.getElementById("session-save-info");
+  const user = await getAuthedUserOrWarn(info);
+  if (!user) return;
 
+  const ok = confirm("Supprimer cette séance ? (irréversible)");
+  if (!ok) return;
 
-    function deleteSessionHistory(index) {
-  const key = "structured-sessions";
-  const raw = localStorage.getItem(key);
-  if (!raw) return;
+  const { error } = await supabaseClient
+    .from("workout_sessions")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
 
-  const sessions = JSON.parse(raw);
+  if (error) {
+    console.error("[delete] supabase error", error);
+    info && (info.textContent = "❌ Erreur suppression (voir console).");
+    return;
+  }
 
-  // Vérification si l’index est valide
-  if (index < 0 || index >= sessions.length) return;
-
-  // Suppression de la séance
-  sessions.splice(index, 1);
-
-  // Sauvegarde
-  localStorage.setItem(key, JSON.stringify(sessions));
-
-  // Mise à jour de l’affichage
-  renderExerciseChart();
-  renderStructuredSessionsHistory();
+  info && (info.textContent = "✅ Séance supprimée.");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
-    let exerciseChart = null;
+/* =========================================================
+   DASHBOARD (chart) – smooth
+   ========================================================= */
 
-    function getStructuredSessions() {
-      const raw = localStorage.getItem("structured-sessions");
-      if (!raw) return [];
-      try {
-        const sessions = JSON.parse(raw);
-        // Tri chronologique : plus anciennes → plus récentes
-        sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+let exerciseChart = null;
 
-        return sessions;
-      } catch {
-        return [];
-      }
-    }
+function updateMetricOptions() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  if (!exerciseSelect || !metricSelect) return;
 
-    function updateMetricOptions() {
-      const exerciseSelect = document.getElementById("dashboard-exercise");
-      const metricSelect = document.getElementById("dashboard-metric");
-      if (!exerciseSelect || !metricSelect) return;
+  const exName = exerciseSelect.value;
+  metricSelect.innerHTML = "";
 
-      const exName = exerciseSelect.value;
-      metricSelect.innerHTML = "";
+  let options = [];
 
-      let options = [];
+  if (isHoldExercise(exName)) {
+    options = [
+      { value: "avg_hold", label: "Moyenne des holds" },
+      { value: "max_hold", label: "Max des holds" },
+      { value: "count_hold", label: "Nombre de holds" },
+      { value: "sum_hold", label: "Somme des holds" }
+    ];
+  } else {
+    options = [
+      { value: "avg_reps", label: "Moyenne des reps" },
+      { value: "max_rep", label: "Max des reps" },
+      { value: "count_sets", label: "Nombre de séries" },
+      { value: "sum_reps", label: "Somme des reps" }
+    ];
+  }
 
-      if (isHoldExercise(exName)) {
-        // Exos à hold
-        options = [
-          { value: "avg_hold", label: "Moyenne des holds" },
-          { value: "max_hold", label: "Max des holds" },
-          { value: "count_hold", label: "Nombre de holds" },
-          { value: "sum_hold", label: "Somme des holds" }
-        ];
-      } else {
-        // Exos à répétitions
-        options = [
-          { value: "avg_reps", label: "Moyenne des reps" },
-          { value: "max_rep", label: "Max des reps" },
-          { value: "count_sets", label: "Nombre de séries" },
-          { value: "sum_reps", label: "Somme des reps" }
-        ];
-      }
+  options.forEach(opt => {
+    const o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    metricSelect.appendChild(o);
+  });
+}
 
-      options.forEach(opt => {
-        const o = document.createElement("option");
-        o.value = opt.value;
-        o.textContent = opt.label;
-        metricSelect.appendChild(o);
-      });
-    }
+async function buildChartData(exerciseName, metricKey) {
+  // ✅ cache: no network spam
+  const sessions = await getStructuredSessions();
+  const labels = [];
+  const data = [];
 
-    function buildChartData(exerciseName, metricKey) {
-      const sessions = getStructuredSessions();
-      const labels = [];
-      const data = [];
+  sessions.forEach(s => {
+    const exercises = s.exercises || [];
+    const matching = exercises.filter(ex => ex.name === exerciseName);
+    if (!matching.length) return;
 
-      sessions.forEach(s => {
-        const exercises = s.exercises || [];
-        const matching = exercises.filter(ex => ex.name === exerciseName);
-        if (!matching.length) return;
-
-        // On agrège toutes les séries de cet exo dans la séance
-        let values = [];
-        matching.forEach(ex => {
-          const nums = [ex.s1, ex.s2, ex.s3, ex.s4,ex.s5,ex.s6,ex.s7,ex.s8]
-            .map(v => Number(v))
-            .filter(v => !isNaN(v) && v > 0);
-          values = values.concat(nums);
-        });
-
-        if (!values.length) return;
-
-        let pointValue = 0;
-
-        if (isHoldExercise(exerciseName)) {
-          const sum = values.reduce((a, b) => a + b, 0);
-          const avg = sum / values.length;
-          const max = Math.max(...values);
-          const count = values.length;
-
-          if (metricKey === "avg_hold") pointValue = avg;
-          else if (metricKey === "max_hold") pointValue = max;
-          else if (metricKey === "count_hold") pointValue = count;
-          else if (metricKey === "sum_hold") pointValue = sum;
-        } else {
-          const sum = values.reduce((a, b) => a + b, 0);
-          const count = values.length;
-          const avg = sum / count;
-          const max = Math.max(...values);
-
-          if (metricKey === "sum_reps") pointValue = sum;
-          else if (metricKey === "avg_reps") pointValue = avg;
-          else if (metricKey === "count_sets") pointValue = count;
-          else if (metricKey === "max_rep") pointValue = max;
-        }
-
-        const d = new Date(s.date);
-        const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
-        labels.push(dateStr);
-        data.push(pointValue);
-      });
-
-      return { labels, data };
-    }
-
-    function renderExerciseChart() {
-      const exerciseSelect = document.getElementById("dashboard-exercise");
-      const metricSelect = document.getElementById("dashboard-metric");
-      const info = document.getElementById("dashboard-info");
-      const ctx = document.getElementById("exercise-chart");
-
-      if (!exerciseSelect || !metricSelect || !ctx) return;
-
-      const exerciseName = getSelectedExerciseName();
-      if (!exerciseName) {
-        info.textContent = "Choisis un exercice ou saisis un nom pour l'exercice personnalisé.";
-        if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
-        return;
-      }
-
-      const metricKey = metricSelect.value;
-      localStorage.setItem("last-selected-exercise-select", exerciseSelect.value);
-
-      localStorage.setItem("last-selected-exercise", exerciseName);
-      localStorage.setItem("last-selected-metric", metricKey);
-
-      const { labels, data } = buildChartData(exerciseName, metricKey);
-
-      if (!labels.length) {
-        info.textContent = "Aucune donnée trouvée pour cet exercice et cette métrique.";
-        if (exerciseChart) {
-          exerciseChart.destroy();
-          exerciseChart = null;
-        }
-        return;
-      }
-
-      info.textContent = "";
-
-      if (exerciseChart) {
-        exerciseChart.destroy();
-      }
-
-      exerciseChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
-          data,
-          borderWidth: 2,
-          tension: 0.2,
-          pointRadius: 3
-        }]
-      },
-      plugins: [ChartDataLabels],
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: {
-        padding: { top: 24, right: 8, left: 4 }
-        },
-        scales: {
-          x: {
-            title: { display: true, text: "Séances" }
-          },
-          y: {
-            title: { display: true, text: "Valeur" },
-            beginAtZero: true
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'bottom'
-          },
-          datalabels: {
-            anchor: "end",
-            align: "top",
-            offset: 4,
-            font: {
-              size: 10
-            },
-            formatter: (value) => {
-              // entier -> "5", sinon -> "5.2"
-              return Number.isInteger(value) ? value : value.toFixed(1);
-            }
-          }
-        }
-      }
+    let values = [];
+    matching.forEach(ex => {
+      const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+        .map(v => Number(v))
+        .filter(v => Number.isFinite(v) && v > 0);
+      values = values.concat(nums);
     });
 
+    if (!values.length) return;
+
+    let pointValue = 0;
+
+    if (isHoldExercise(exerciseName)) {
+      const sum = values.reduce((a, b) => a + b, 0);
+      const avg = sum / values.length;
+      const max = Math.max(...values);
+      const count = values.length;
+
+      if (metricKey === "avg_hold") pointValue = avg;
+      else if (metricKey === "max_hold") pointValue = max;
+      else if (metricKey === "count_hold") pointValue = count;
+      else if (metricKey === "sum_hold") pointValue = sum;
+    } else {
+      const sum = values.reduce((a, b) => a + b, 0);
+      const count = values.length;
+      const avg = sum / count;
+      const max = Math.max(...values);
+
+      if (metricKey === "sum_reps") pointValue = sum;
+      else if (metricKey === "avg_reps") pointValue = avg;
+      else if (metricKey === "count_sets") pointValue = count;
+      else if (metricKey === "max_rep") pointValue = max;
     }
 
-    function initDashboard() {
-      const exerciseSelect = document.getElementById("dashboard-exercise");
-      const metricSelect = document.getElementById("dashboard-metric");
-      if (!exerciseSelect || !metricSelect) return;
+    const d = new Date(s.date);
+    const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
+    labels.push(dateStr);
+    data.push(pointValue);
+  });
 
-      const customInput = document.getElementById("custom-exercise");
-
-      // 1) Restaurer l'état du select (y compris __custom__) AVANT le reste
-      const savedSelect = localStorage.getItem("last-selected-exercise-select");
-      if (savedSelect) {
-        const exists = Array.from(exerciseSelect.options).some(o => o.value === savedSelect);
-        if (exists) exerciseSelect.value = savedSelect;
-      }
-
-      function syncCustomUI() {
-        if (!customInput) return;
-
-        const isCustom = (exerciseSelect.value === "__custom_reps__" || exerciseSelect.value === "__custom_hold__");
-        customInput.style.display = isCustom ? "block" : "none";
-
-        if (isCustom) {
-          const key = (exerciseSelect.value === "__custom_hold__")
-            ? "custom-hold-exercise-name"
-            : "custom-reps-exercise-name";
-
-          const savedName = localStorage.getItem(key) || "";
-          if (!customInput.value) customInput.value = savedName;
-        }
-
-        customInput.style.display = isCustom ? "block" : "none";
-
-        if (isCustom) {
-          const savedName = localStorage.getItem("custom-exercise-name") || "";
-          if (!customInput.value) customInput.value = savedName;
-        }
-      }
-
-      // 2) Sync UI custom maintenant que le select est restauré
-      syncCustomUI();
-
-      // 3) Générer les métriques selon l'exercice courant
-      updateMetricOptions();
-
-      // 4) Restaurer la métrique après génération des options
-      const savedMetric = localStorage.getItem("last-selected-metric");
-      if (savedMetric) {
-        const exists = Array.from(metricSelect.options).some(o => o.value === savedMetric);
-        if (exists) metricSelect.value = savedMetric;
-      }
-
-      // 5) Rendu initial
-      renderExerciseChart();
-
-      // Listeners
-      exerciseSelect.addEventListener("change", () => {
-        syncCustomUI();
-        updateMetricOptions();
-        renderExerciseChart();
-      });
-
-      metricSelect.addEventListener("change", () => {
-        renderExerciseChart();
-      });
-
-      if (customInput) {
-        customInput.addEventListener("input", () => {
-          const name = (customInput.value || "").trim();
-          const key = (exerciseSelect.value === "__custom_hold__")
-            ? "custom-hold-exercise-name"
-            : "custom-reps-exercise-name";
-
-          localStorage.setItem(key, name);
-
-          renderExerciseChart();
-        });
-      }
-    }
-
-
-       
-
-
-
-    function initStructuredLog() {
-      // au moins une ligne vide par défaut
-      addExerciseRow();
-    }
-
-    /* ---------- JOURNAL LIBRE (NOTES) ---------- */
-
-    function showPost(id) {
-      for (let i = 1; i <= 4; i++) {
-        const post = document.getElementById("post-" + i);
-        const btn = document.getElementById("btn-post-" + i);
-        if (i === id) {
-          post.style.display = "block";
-          btn.classList.add("active");
-        } else {
-          post.style.display = "none";
-          btn.classList.remove("active");
-        }
-      }
-    }
-
-    function savePost(id) {
-      const textarea = document.getElementById("textarea-" + id);
-      const info = document.getElementById("info-" + id);
-      const key = "journal-content-" + id;
-
-      localStorage.setItem(key, textarea.value);
-      const now = new Date().toLocaleString();
-      info.textContent = "Enregistré le " + now + " (stocké dans ce navigateur uniquement)";
-    }
-
-    function resetPost(id) {
-      const textarea = document.getElementById("textarea-" + id);
-      const info = document.getElementById("info-" + id);
-      const key = "journal-content-" + id;
-
-      textarea.value = "";
-      localStorage.removeItem(key);
-      info.textContent = "";
-    }
-
-    function loadPosts() {
-      for (let i = 1; i <= 4; i++) {
-        const textarea = document.getElementById("textarea-" + i);
-        const info = document.getElementById("info-" + i);
-        const key = "journal-content-" + i;
-
-        const saved = localStorage.getItem(key);
-        if (saved !== null) {
-          textarea.value = saved;
-          info.textContent = "Contenu récupéré depuis ce navigateur.";
-        }
-      }
-      showPost(1);
-    }
-
-      window.addEventListener("DOMContentLoaded", () => {
-        initStructuredLog();
-        loadPosts();
-
-        const exerciseSelect = document.getElementById("dashboard-exercise");
-
-        const savedSelect = localStorage.getItem("last-selected-exercise-select");
-        if (savedSelect && exerciseSelect) {
-          exerciseSelect.value = savedSelect;
-        }        
-        const savedExercise = localStorage.getItem("last-selected-exercise");
-
-        if (savedExercise && exerciseSelect) exerciseSelect.value = savedExercise;
-        if (!savedSelect) {
-        const savedExercise = localStorage.getItem("last-selected-exercise");
-        if (savedExercise && exerciseSelect) exerciseSelect.value = savedExercise;
-      }
-        renderStructuredSessionsHistory();
-        initDashboard(); // initDashboard s’occupe de la métrique + du rendu du chart
-      });
-
-  </script>
-
-  <script>
-
-const supabaseClient = window.supabaseClient;
-if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
-  console.error("Supabase client invalide", supabaseClient);
+  return { labels, data };
 }
 
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+async function renderExerciseChart() {
+  const my = ++__chartSeq;
+
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  const info = document.getElementById("dashboard-info");
+  const ctx = document.getElementById("exercise-chart");
+
+  if (!exerciseSelect || !metricSelect || !ctx) return;
+
+  // if not authed, keep clean UI
+  const { data: sessData } = await supabaseClient.auth.getSession();
+  const user = sessData?.session?.user || null;
+  if (!user) {
+    info.textContent = "Connecte-toi pour voir ton tableau de bord.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  const exerciseName = getSelectedExerciseName();
+  if (!exerciseName) {
+    info.textContent = "Choisis un exercice ou saisis un nom pour l'exercice personnalisé.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  const metricKey = metricSelect.value;
+
+  // Persist UI choices locally
+  localStorage.setItem("last-selected-exercise-select", exerciseSelect.value);
+  localStorage.setItem("last-selected-exercise", exerciseName);
+  localStorage.setItem("last-selected-metric", metricKey);
+
+  const { labels, data } = await buildChartData(exerciseName, metricKey);
+
+  // ✅ ignore obsolete renders
+  if (my !== __chartSeq) return;
+
+  if (!labels.length) {
+    info.textContent = "Aucune donnée trouvée pour cet exercice et cette métrique.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  info.textContent = "";
+
+  if (exerciseChart) exerciseChart.destroy();
+
+  exerciseChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
+        data,
+        borderWidth: 2,
+        tension: 0.2,
+        pointRadius: 3
+      }]
+    },
+    plugins: [ChartDataLabels],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 24, right: 8, left: 4 } },
+      scales: {
+        x: { title: { display: true, text: "Séances" } },
+        y: { title: { display: true, text: "Valeur" }, beginAtZero: true }
+      },
+      plugins: {
+        legend: { position: "bottom" },
+        datalabels: {
+          anchor: "end",
+          align: "top",
+          offset: 4,
+          font: { size: 10 },
+          formatter: (value) => Number.isInteger(value) ? value : value.toFixed(1)
+        }
+      }
+    }
+  });
 }
 
+async function initDashboard() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  if (!exerciseSelect || !metricSelect) return;
 
+  const customInput = document.getElementById("custom-exercise");
+
+  // restore select
+  const savedSelect = localStorage.getItem("last-selected-exercise-select");
+  if (savedSelect) {
+    const exists = Array.from(exerciseSelect.options).some(o => o.value === savedSelect);
+    if (exists) exerciseSelect.value = savedSelect;
+  }
+
+  function syncCustomUI() {
+    if (!customInput) return;
+    const isCustom = (exerciseSelect.value === "__custom_reps__" || exerciseSelect.value === "__custom_hold__");
+    customInput.style.display = isCustom ? "block" : "none";
+
+    if (isCustom) {
+      const key = (exerciseSelect.value === "__custom_hold__")
+        ? "custom-hold-exercise-name"
+        : "custom-reps-exercise-name";
+      const savedName = localStorage.getItem(key) || "";
+      if (!customInput.value) customInput.value = savedName;
+    } else {
+      // optional: keep value, or clear:
+      // customInput.value = "";
+    }
+  }
+
+  syncCustomUI();
+  updateMetricOptions();
+
+  const savedMetric = localStorage.getItem("last-selected-metric");
+  if (savedMetric) {
+    const exists = Array.from(metricSelect.options).some(o => o.value === savedMetric);
+    if (exists) metricSelect.value = savedMetric;
+  }
+
+  await renderExerciseChart();
+
+  // listeners (async-safe)
+  exerciseSelect.addEventListener("change", async () => {
+    syncCustomUI();
+    updateMetricOptions();
+    await renderExerciseChart();
+  });
+
+  metricSelect.addEventListener("change", async () => {
+    await renderExerciseChart();
+  });
+
+  if (customInput) {
+    customInput.addEventListener("input", async () => {
+      const name = (customInput.value || "").trim();
+      const key = (exerciseSelect.value === "__custom_hold__")
+        ? "custom-hold-exercise-name"
+        : "custom-reps-exercise-name";
+      localStorage.setItem(key, name);
+      await renderExerciseChart();
+    });
+  }
+}
+
+function initStructuredLog() {
+  addExerciseRow();
+}
+
+/* =========================================================
+   NOTES (local only)
+   ========================================================= */
+
+function showPost(id) {
+  for (let i = 1; i <= 4; i++) {
+    const post = document.getElementById("post-" + i);
+    const btn = document.getElementById("btn-post-" + i);
+    if (!post || !btn) continue;
+
+    if (i === id) {
+      post.style.display = "block";
+      btn.classList.add("active");
+    } else {
+      post.style.display = "none";
+      btn.classList.remove("active");
+    }
+  }
+}
+
+function savePost(id) {
+  const textarea = document.getElementById("textarea-" + id);
+  const info = document.getElementById("info-" + id);
+  const key = "journal-content-" + id;
+
+  if (!textarea) return;
+  localStorage.setItem(key, textarea.value);
+  const now = new Date().toLocaleString();
+  if (info) info.textContent = "Enregistré le " + now + " (stocké dans ce navigateur uniquement)";
+}
+
+function resetPost(id) {
+  const textarea = document.getElementById("textarea-" + id);
+  const info = document.getElementById("info-" + id);
+  const key = "journal-content-" + id;
+
+  if (textarea) textarea.value = "";
+  localStorage.removeItem(key);
+  if (info) info.textContent = "";
+}
+
+function loadPosts() {
+  for (let i = 1; i <= 4; i++) {
+    const textarea = document.getElementById("textarea-" + i);
+    const info = document.getElementById("info-" + i);
+    const key = "journal-content-" + i;
+
+    if (!textarea) continue;
+    const saved = localStorage.getItem(key);
+    if (saved !== null) {
+      textarea.value = saved;
+      if (info) info.textContent = "Contenu récupéré depuis ce navigateur.";
+    }
+  }
+  showPost(1);
+}
+
+/* =========================================================
+   COMMUNITY: username + feed + auth
+   ========================================================= */
 
 async function getOrCreateUsername(inputUsername) {
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
   if (!user) return null;
 
-  // 1) Lire le profil existant (0 ligne = OK)
   const { data: profile, error: selectError } = await supabaseClient
     .from("user_profiles")
     .select("username")
     .eq("user_id", user.id)
-    .maybeSingle(); // 🔑 IMPORTANT
+    .maybeSingle();
 
   if (selectError) {
     console.error(selectError);
@@ -1559,7 +1596,6 @@ async function getOrCreateUsername(inputUsername) {
 
   if (profile?.username) return profile.username;
 
-  // 2) Créer le pseudo
   const username = inputUsername.trim();
   if (!username) return null;
 
@@ -1568,79 +1604,21 @@ async function getOrCreateUsername(inputUsername) {
     .insert({ user_id: user.id, username });
 
   if (insertError) {
-    if (insertError.code === "23505") {
-      throw new Error("USERNAME_TAKEN");
-    }
+    if (insertError.code === "23505") throw new Error("USERNAME_TAKEN");
     throw insertError;
   }
 
   return username;
 }
 
-
-  // Publie la DERNIÈRE séance stockée dans ton localStorage "structured-sessions"
-  async function publishLastSession() {
-    uiInfo("");
-
-    const { data: authData } = await supabaseClient.auth.getUser();
-    console.log("AUTH USER:", authData);
-
-    const user = authData?.user;
-    if (!user) return uiInfo("Tu dois être connecté pour publier.");
-
-    
-    const inputUsername = document.getElementById("public-username").value;
-
-  let username;
-  try {
-    username = await getOrCreateUsername(inputUsername);
-  } catch (e) {
-    return uiInfo("Ce pseudo est déjà utilisé.");
-  }
-
-  if (!username) {
-    return uiInfo("Choisis un pseudo (une seule fois).");
-  }
-
-
-    const raw = localStorage.getItem("structured-sessions");
-    const sessions = raw ? JSON.parse(raw) : [];
-    if (!sessions.length) return uiInfo("Aucune séance à publier (journal structuré vide).");
-
-    const last = sessions[sessions.length - 1];
-    if (!last?.date) return uiInfo("Ta dernière séance n’a pas de date.");
-
-    const row = {
-      user_id: user.id,
-      username,
-      session_date: last.date,
-      payload: last
-    };
-    console.log("INSERT PAYLOAD:", row);
-    const { data, error } = await supabaseClient
-      .from("workout_sessions")
-      .insert(row)
-      .select();
-
-    console.log("INSERT RESULT:", data, error);
-
-    if (error) return uiInfo("Erreur publication: " + error.message);
-
-    uiInfo("Séance publiée ✅");
-    await loadPublicFeed();
-  }
-  
 async function initUsernameUI() {
   const input = document.getElementById("public-username");
   if (!input) return;
 
-  // ✅ RESET UI (important)
+  // reset
   input.disabled = false;
   input.title = "";
-  // (optionnel) si tu veux éviter de garder un ancien pseudo affiché
-  // input.value = "";
 
-  // si pas connecté, on laisse l'input libre
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
   if (!user) return;
@@ -1656,22 +1634,32 @@ async function initUsernameUI() {
     return;
   }
 
-  // ✅ si username déjà défini -> lock
   if (profile?.username) {
     input.value = profile.username;
     input.disabled = true;
     input.title = "Pseudo définitif";
   } else {
-    // ✅ sinon -> input libre (nouvel user)
-    // optionnel : vide l'ancien pseudo affiché
     input.value = "";
   }
 }
 
- window.addEventListener("DOMContentLoaded", initUsernameUI);
+function computeSessionPoints(payload) {
+  const exos = payload?.exercises || [];
+  let total = 0;
 
+  for (const ex of exos) {
+    const vals = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .map(v => Number(v))
+      .filter(v => Number.isFinite(v) && v > 0);
 
-  function renderFeedItem(s, currentUserId) {
+    if (!vals.length) continue;
+    total += vals.reduce((a, b) => a + b, 0);
+  }
+
+  return Math.round(total);
+}
+
+function renderFeedItem(s, currentUserId) {
   const d = new Date(s.session_date);
   const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
 
@@ -1685,7 +1673,6 @@ async function initUsernameUI() {
         .filter(v => v !== "" && v !== null && v !== undefined)
         .join("/");
 
-      // optionnel: unités
       const unit = ex.mode === "hold" ? "s" : "reps";
       return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)} ${unit}` : ""}</li>`;
     })
@@ -1717,11 +1704,7 @@ async function initUsernameUI() {
   `;
 }
 
-
-let __feedSeq = 0;
-let __feedInFlight = null;
-
-function withTimeout(p, ms, code = "FEED_TIMEOUT") {
+function withTimeout(p, ms, code = "TIMEOUT") {
   let t;
   const timeout = new Promise((_, rej) => {
     t = setTimeout(() => rej(new Error(code)), ms);
@@ -1739,13 +1722,13 @@ async function loadPublicFeed({ force = false } = {}) {
   container.innerHTML = `<div style="font-size:13px;color:#666;">Chargement du feed...</div>`;
 
   const commit = (html) => {
-    if (mySeq !== __feedSeq) return; // ignore réponse obsolète
+    if (mySeq !== __feedSeq) return;
     container.innerHTML = html;
   };
 
   __feedInFlight = (async () => {
     try {
-      // 1) User (peut hang après retour d’onglet)
+      // current user id (timeout)
       let currentUserId = null;
       try {
         const { data, error } = await withTimeout(supabaseClient.auth.getUser(), 1200, "AUTH_TIMEOUT");
@@ -1754,7 +1737,7 @@ async function loadPublicFeed({ force = false } = {}) {
         currentUserId = null;
       }
 
-      // 2) Feed (peut hang / réseau)
+      // fetch feed (timeout)
       const { data, error } = await withTimeout(
         supabaseClient
           .from("workout_sessions")
@@ -1777,7 +1760,6 @@ async function loadPublicFeed({ force = false } = {}) {
 
       commit(data.map(s => renderFeedItem(s, currentUserId)).join(""));
     } catch (e) {
-      // ✅ au lieu de rester sur “Chargement…”
       commit(`<div style="font-size:13px;color:#a00;">Feed indisponible (${escapeHtml(e?.message || String(e))})</div>`);
     } finally {
       if (mySeq === __feedSeq) __feedInFlight = null;
@@ -1787,10 +1769,7 @@ async function loadPublicFeed({ force = false } = {}) {
   return __feedInFlight;
 }
 
-
-// ---------- DELETE (feed public) ----------
 async function deleteSession(sessionId) {
-  // pas de confirm (comme tu veux)
   const { error } = await supabaseClient
     .from("workout_sessions")
     .delete()
@@ -1802,28 +1781,112 @@ async function deleteSession(sessionId) {
   }
 
   uiInfo("Séance supprimée.");
-  await loadPublicFeed();
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
-function uiInfo(msg) {
-  const el = document.getElementById("community-info");
-  if (el) el.textContent = msg || "";
-}
+async function publishLastSession() {
+  uiInfo("");
 
-let __uiUpdating = false;
+  const { data: authData } = await supabaseClient.auth.getUser();
+  const user = authData?.user;
+  if (!user) return uiInfo("Tu dois être connecté pour publier.");
 
-async function updateUIFromSession() {
-  if (__uiUpdating) return;
-  __uiUpdating = true;
+  const inputUsername = document.getElementById("public-username")?.value || "";
+
+  let username;
   try {
-    await loadPublicFeed({ force: true });
+    username = await getOrCreateUsername(inputUsername);
+  } catch (e) {
+    return uiInfo("Ce pseudo est déjà utilisé.");
+  }
 
-    const { data } = await supabaseClient.auth.getSession();
-    if (data?.session?.user && typeof initUsernameUI === "function") {
-      await initUsernameUI();
+  if (!username) return uiInfo("Choisis un pseudo (une seule fois).");
+
+  // ⚠️ ici tu publies "la dernière séance" depuis ton tableau (Supabase) ou local ?
+  // Tu avais localStorage avant. Si tu veux publier la dernière de Supabase:
+  // -> on prend la plus récente du cache (force fetch)
+  const sessions = await fetchSessionsIntoCache({ force: true });
+  if (!sessions.length) return uiInfo("Aucune séance à publier (journal structuré vide).");
+
+  const last = sessions[sessions.length - 1];
+  if (!last?.date) return uiInfo("Ta dernière séance n’a pas de date.");
+
+  const row = {
+    user_id: user.id,
+    username,
+    session_date: last.date,
+    payload: last
+  };
+
+  const { error } = await supabaseClient.from("workout_sessions").insert([row]);
+
+  if (error) return uiInfo("Erreur publication: " + error.message);
+
+  uiInfo("Séance publiée ✅");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+/* ---------- AUTH ---------- */
+
+async function login() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return uiInfo("Erreur login : " + error.message);
+
+  uiInfo("Connecté !");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+async function signup() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return uiInfo("Erreur inscription : " + error.message);
+
+  if (data?.session) uiInfo("Inscription OK + connecté.");
+  else uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
+
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+let isLoggingOut = false;
+
+async function logout() {
+  if (isLoggingOut) return;
+  isLoggingOut = true;
+
+  const btns = document.querySelectorAll('button[onclick="logout()"]');
+  btns.forEach(b => (b.disabled = true));
+
+  try {
+    uiInfo("Déconnexion...");
+
+    const signOutPromise = supabaseClient.auth.signOut();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1200));
+    await Promise.race([signOutPromise, timeoutPromise]);
+
+    uiInfo("Déconnecté.");
+  } catch (e) {
+    if (e?.message === "TIMEOUT_SIGNOUT") {
+      uiInfo("Déconnecté (UI). Rechargement...");
+      window.location.reload();
+      return;
     }
+    uiInfo("Erreur logout : " + (e?.message || e));
   } finally {
-    __uiUpdating = false;
+    clearPrivateUI();
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    isLoggingOut = false;
+    btns.forEach(b => (b.disabled = false));
   }
 }
 
@@ -1832,8 +1895,7 @@ function bindAuthListenerOnce() {
   window.__authListenerBound = true;
 
   supabaseClient.auth.onAuthStateChange(() => {
-    // pas de await ici -> évite blocages/timing foireux
-    updateUIFromSession();
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
   });
 }
 
@@ -1850,145 +1912,87 @@ function bindVisibilityRefresh() {
   });
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+/* ---------- AUTO SAVE / COUNTER TOOL LAUNCH ---------- */
+
+function bindAutoSaveButton() {
+  const btn = document.getElementById("autoSaveBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const { data: authData } = await supabaseClient.auth.getUser();
+    const user = authData?.user;
+    if (!user) {
+      alert("Tu dois être connecté.");
+      return;
+    }
+
+    // username public (si tu veux le passer)
+    const username = user.user_metadata?.username || "";
+
+    const ctx = {
+      userId: user.id,
+      username,
+      exercise: "Tractions",
+      mode: "pullups",
+      sessionDate: new Date().toISOString().slice(0,10),
+    };
+
+    const encoded = encodeURIComponent(btoa(JSON.stringify(ctx)));
+    window.location.href = `/counter/launcher.html?ctx=${encoded}`;
+  });
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+
+window.addEventListener("DOMContentLoaded", async () => {
+  // init base UI
+  initStructuredLog();
+  loadPosts();
+  bindAutoSaveButton();
+
+  // restore dashboard state
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const savedSelect = localStorage.getItem("last-selected-exercise-select");
+  if (savedSelect && exerciseSelect) {
+    exerciseSelect.value = savedSelect;
+  }
+
+  // init dashboard (sets listeners + first render)
+  await initDashboard();
+
+  // auth + feed refresh
   bindAuthListenerOnce();
   bindVisibilityRefresh();
-  updateUIFromSession();
+
+  // username lock
+  await initUsernameUI();
+
+  // first refresh (groups feed + sessions + chart)
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 });
 
-// LOGIN
-async function login() {
-  uiInfo("");
+/* expose onclick handlers */
+window.addExerciseRow = addExerciseRow;
+window.removeExerciseRow = removeExerciseRow;
+window.saveStructuredSession = saveStructuredSession;
+window.deleteSessionHistory = deleteSessionHistory;
 
-  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
-  const password = document.getElementById("auth-pass")?.value?.trim();
-  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+window.publishLastSession = publishLastSession;
 
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) return uiInfo("Erreur login : " + error.message);
-
-  uiInfo("Connecté !");
-  updateUIFromSession();
-}
-
-// SIGNUP
-async function signup() {
-  uiInfo("");
-
-  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
-  const password = document.getElementById("auth-pass")?.value?.trim();
-  if (!email || !password) return uiInfo("Email et mot de passe requis.");
-
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) return uiInfo("Erreur inscription : " + error.message);
-
-  if (data?.session) {
-    uiInfo("Inscription OK + connecté.");
-  } else {
-    uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
-  }
-  updateUIFromSession();
-}
-
-// LOGOUT (sans blocage)
-let isLoggingOut = false;
-
-async function logout() {
-  if (isLoggingOut) return;          // ✅ empêche multi-clic / appels multiples
-  isLoggingOut = true;
-
-  const btns = document.querySelectorAll('button[onclick="logout()"]');
-  btns.forEach(b => (b.disabled = true));
-
-  try {
-    uiInfo("Déconnexion...");
-
-    // ✅ timeout : si Supabase ne répond pas, on ne bloque pas l’UI
-    const signOutPromise = supabaseClient.auth.signOut();
-
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1200)
-    );
-
-    await Promise.race([signOutPromise, timeoutPromise]);
-
-    uiInfo("Déconnecté.");
-  } catch (e) {
-  if (e?.message === "TIMEOUT_SIGNOUT") {
-    uiInfo("Déconnecté (UI). Rechargement...");
-    window.location.reload(); // ✅ RAFRAÎCHISSEMENT AUTO
-
-  } else {
-    uiInfo("Erreur logout : " + (e?.message || e));
-  }
-}
- finally {
-    // ✅ quoi qu’il arrive, on remet l’UI à jour et on recharge le feed
-    try { await loadPublicFeed(); } catch {}
-    isLoggingOut = false;
-    btns.forEach(b => (b.disabled = false));
-  }
-}
-
-// rendre accessibles aux onclick=""
 window.login = login;
 window.signup = signup;
 window.logout = logout;
+
+window.showPost = showPost;
+window.savePost = savePost;
+window.resetPost = resetPost;
+
 window.loadPublicFeed = loadPublicFeed;
-
-
-function computeSessionPoints(payload) {
-  const exos = payload?.exercises || [];
-  let total = 0;
-
-  for (const ex of exos) {
-    // récupère toutes les valeurs de séries
-    const vals = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-      .map(v => Number(v))
-      .filter(v => Number.isFinite(v) && v > 0);
-
-    if (!vals.length) continue;
-
-    const sum = vals.reduce((a, b) => a + b, 0);
-
-    // règle demandée : somme reps + somme holds, arrondis
-    // (si ex.mode === "hold" => secondes, sinon reps)
-    total += sum;
-  }
-
-  return Math.round(total);
-}
-
-
-document.getElementById("autoSaveBtn").addEventListener("click", async () => {
-  const { data: authData } = await supabaseClient.auth.getUser();
-  const user = authData?.user;
-  if (!user) {
-    alert("Tu dois être connecté.");
-    return;
-  }
-
-  // (Optionnel) username stocké quelque part
-  // sinon tu peux passer juste user.id, et fetch username côté app.
-  const username = user.user_metadata?.username || "";
-
-  // Exemple : tu peux pré-remplir exercice / mode depuis le site
-  const ctx = {
-    userId: user.id,
-    username,
-    exercise: "Tractions",
-    mode: "pullups",
-    // tu peux aussi passer une date de séance ou laisser l’app la mettre
-    sessionDate: new Date().toISOString().slice(0,10),
-  };
-
-  const encoded = encodeURIComponent(btoa(JSON.stringify(ctx)));
-  // ouvre la page tool
-  window.location.href = `/counter/launcher.html?ctx=${encoded}`;
-});
-
-
+window.deleteSession = deleteSession;
 </script>
+
 
 
 </body>

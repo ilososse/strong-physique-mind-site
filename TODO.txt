@@ -14,6 +14,7 @@
 -Il me manque des photos pour rendre le site plus joli et moins imbitable 
 
 Idées outils automatisés ML - plus orienté application: 
-- Système IA de dénombrement du nombre de rép à partir d'une vidéo
+- Système IA de dénombrement du nombre de rép à partir d'une vidéo -> PULL UP INTEGRE ! PUSH UP - DIPS - HANDSTAND TRACKING
+- Harmonisation entre sessions locales et sessions centralisées dans la base de données
 - Système IA de note de la forme d'un exercice exécuté (exemple note de 1 à 10 d'un handstand, d'une planche, d'un frontlever, pompe ...)
 
