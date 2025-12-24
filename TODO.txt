@@ -18,3 +18,4 @@ Idées outils automatisés ML - plus orienté application:
 - Harmonisation entre sessions locales et sessions centralisées dans la base de données
 - Système IA de note de la forme d'un exercice exécuté (exemple note de 1 à 10 d'un handstand, d'une planche, d'un frontlever, pompe ...)
 
+TODO : idée : MERGE deux ou plusieurs sessions appartenant au même jour pour éviter d'ajouter autant de sessions que d'exercices !
