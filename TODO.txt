@@ -19,3 +19,5 @@ Idées outils automatisés ML - plus orienté application:
 - Système IA de note de la forme d'un exercice exécuté (exemple note de 1 à 10 d'un handstand, d'une planche, d'un frontlever, pompe ...)
 
 TODO : idée : MERGE deux ou plusieurs sessions appartenant au même jour pour éviter d'ajouter autant de sessions que d'exercices !
+AJOUTER DES ETOILES POUR LINTENSITE à coté de chaque exo (utile pour faire un scoring plus fin)
+Faire les merges au niveau du site caliambition
