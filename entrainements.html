@@ -538,7 +538,7 @@
 <section class="structured-log" style="margin-top:16px;">
   <h2 class="section-title">Communauté</h2>
   <p style="font-size:14px;color:#555;">
-    Publie tes séances (pseudo) et consulte le feed public pour t’inspirer. Attention, une fois ton pseudo saisi et validé, il n’est plus modifiable !
+    Publie ta première séance (pseudo) et consulte le feed public pour t’inspirer. Attention, une fois ton pseudo saisi et validé, il n’est plus modifiable ! Plus bas tu trouveras l'outil d'entraînement conçu par un athlète pour les athlètes !
   </p>
 
   <div class="session-meta" style="align-items:flex-end;">
@@ -570,7 +570,7 @@
     </label>
 
     <button class="btn btn-primary" type="button" onclick="publishLastSession()">
-      Publier ma dernière séance
+      Enregistrer mon pseudo
     </button>
       <div class="top-right-actions">
     <button id="autoSaveBtn" class="btn-auto-save">
@@ -1791,7 +1791,7 @@ async function publishLastSession() {
 
   const { data: authData } = await supabaseClient.auth.getUser();
   const user = authData?.user;
-  if (!user) return uiInfo("Tu dois être connecté pour publier.");
+  if (!user) return uiInfo("Tu dois être connecté pour créer ton pseudo.");
 
   const inputUsername = document.getElementById("public-username")?.value || "";
 
@@ -1803,28 +1803,6 @@ async function publishLastSession() {
   }
 
   if (!username) return uiInfo("Choisis un pseudo (une seule fois).");
-
-  // ⚠️ ici tu publies "la dernière séance" depuis ton tableau (Supabase) ou local ?
-  // Tu avais localStorage avant. Si tu veux publier la dernière de Supabase:
-  // -> on prend la plus récente du cache (force fetch)
-  const sessions = await fetchSessionsIntoCache({ force: true });
-  if (!sessions.length) return uiInfo("Aucune séance à publier (journal structuré vide).");
-
-  const last = sessions[sessions.length - 1];
-  if (!last?.date) return uiInfo("Ta dernière séance n’a pas de date.");
-
-  const row = {
-    user_id: user.id,
-    username,
-    session_date: last.date,
-    payload: last
-  };
-
-  const { error } = await supabaseClient.from("workout_sessions").insert([row]);
-
-  if (error) return uiInfo("Erreur publication: " + error.message);
-
-  uiInfo("Séance publiée ✅");
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
