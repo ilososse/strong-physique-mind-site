@@ -3807,7 +3807,7 @@ void main() {
       cursor: pointer;
     `,Object.keys(this.EXERCISES).forEach(a=>{const l=document.createElement("option");l.value=a,l.textContent=a,r.appendChild(l)}),r.value=((o=this.exercise)==null?void 0:o.name)||"Tractions",r.addEventListener("change",()=>this._handleExerciseSwitch(r.value)),t.appendChild(n),t.appendChild(r),e.appendChild(t),getComputedStyle(this.renderDiv).position==="static"&&(this.renderDiv.style.position="relative"),this.renderDiv.appendChild(e),this.liveMenuContainer=e}_injectBackButtonLive(){if(!this.renderDiv)return;const e=document.createElement("button");e.type="button",e.textContent=Ia?"↩":"↩ Quitter",e.style.cssText=`
       position: absolute;
-      top: 20px;
+      top: 60px;
       left: 12px;
       z-index: 999999;
       display: none; /* affiché à Start */
