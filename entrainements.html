@@ -1156,13 +1156,35 @@ async function saveStructuredSession() {
       session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
     }
   });
+  // ✅ PATCH: récupérer le pseudo depuis user_profiles (source de vérité)
+  let publicUsername = "";
+
+  try {
+    const { data: profile, error: profErr } = await supabaseClient
+      .from("user_profiles")
+      .select("username")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profErr) console.warn("[saveStructuredSession] profile fetch error", profErr);
+    publicUsername = (profile?.username || "").trim();
+  } catch (e) {
+    console.warn("[saveStructuredSession] profile fetch crash", e);
+  }
+
+  // Fallback: si vraiment aucun pseudo, mets un libellé neutre (PAS l'email)
+  const safeDisplayUsername =
+    publicUsername ||
+    (user.user_metadata?.username || user.user_metadata?.name || "").toString().trim() ||
+    "Utilisateur";
 
   const row = {
     user_id: user.id,
-    username: (user.user_metadata?.username || user.user_metadata?.name || user.email || "").toString(),
+    username: safeDisplayUsername,
     session_date: session.date,
     payload: session
   };
+
 
   info && (info.textContent = "⏳ Enregistrement Supabase...");
 
@@ -1791,7 +1813,7 @@ async function publishLastSession() {
 
   const { data: authData } = await supabaseClient.auth.getUser();
   const user = authData?.user;
-  if (!user) return uiInfo("Tu dois être connecté pour créer ton pseudo.");
+  if (!user) return uiInfo("Tu dois être connecté pour enregistrer ton pseudo.");
 
   const inputUsername = document.getElementById("public-username")?.value || "";
 
