@@ -3846,7 +3846,7 @@ Total sets: ${this.sets.length} (${this.sets.join(" / ")})`,"white",!0),((s=this
       font-size: 13px;
       outline: none;
       cursor: pointer;
-    `,["Straddle","Full","Tuck","Autre"].forEach(h=>{const d=document.createElement("option");d.value=h,d.textContent=h,s.appendChild(d)});const a=document.createElement("input");a.type="text",a.placeholder="Autre (ex: Advanced tuck)",a.style.cssText=`
+    `,["Straddle","Full","Tuck","Autre"].forEach(h=>{const d=document.createElement("option");d.value=h,d.textContent=h,s.appendChild(d)}),s.value=this.plancheSetVariants[e]||"Tuck";const a=document.createElement("input");a.type="text",a.placeholder="Autre (ex: Advanced tuck)",a.style.cssText=`
       padding: 7px 9px;
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.25);
