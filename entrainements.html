@@ -1,1747 +1,2002 @@
-// game.js
-// - Tractions: INCHANGÉ
-// - Pompes: détection basée sur l'ANGLE du coude (avant-bras / bras)
-// - Handstand: timer (s) quand inversé + aligné, stop sur brisure
-// - Handstand Push Up: reps, uniquement en handstand, fin sur brisure de pose (pas idle)
-// - Planche: timer (s), fin sur brisure de ligne (alignement / retombée)
-//   + à chaque set terminé: choix variante (Straddle / Full / Tuck / Autre + input)
-//   + au moment du Save: nom d'exercice = "<Variante> planche" (ex: "Straddle planche")
+<!DOCTYPE html>
+<html lang="fr">
+  
+<head>
 
-import * as THREE from "three";
-import { PoseLandmarker, FilesetResolver } from "https://esm.sh/@mediapipe/tasks-vision@0.10.14";
-import { AudioManager } from "./audioManager.js";
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
 
-// Supabase client (utilise la session déjà stockée côté site si même domaine)
-const SUPABASE_URL = "https://lmblqxwssrxucbtowfkq.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_8cLzA_3Ud6AaLSi8mTf1Gw_4lJZTLjs";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // création unique du client
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
 
-const isMobile =
-  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  <meta charset="UTF-8" />
+  <title>Programmes & progression – Calisthénie</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="images/favicon.png">
 
-// ----------------------------
-// Utils
-// ----------------------------
-function clamp01(x) {
-  return Math.max(0, Math.min(1, x));
-}
+  <style>
 
-function visOK(lm, min = 0.5) {
-  return !!lm && (lm.visibility ?? 0) >= min;
-}
-
-// Angle au point B formé par A-B-C (en degrés)
-function angleDeg(A, B, C) {
-  if (!A || !B || !C) return null;
-
-  const abx = A.x - B.x;
-  const aby = A.y - B.y;
-  const abz = (A.z ?? 0) - (B.z ?? 0);
-
-  const cbx = C.x - B.x;
-  const cby = C.y - B.y;
-  const cbz = (C.z ?? 0) - (B.z ?? 0);
-
-  const dot = abx * cbx + aby * cby + abz * cbz;
-  const ab = Math.sqrt(abx * abx + aby * aby + abz * abz);
-  const cb = Math.sqrt(cbx * cbx + cby * cby + cbz * cbz);
-  if (ab === 0 || cb === 0) return null;
-
-  const cos = Math.max(-1, Math.min(1, dot / (ab * cb)));
-  return (Math.acos(cos) * 180) / Math.PI;
-}
-
-function uniq(arr) {
-  return [...new Set((arr || []).filter((x) => typeof x === "string" && x.trim().length))];
-}
-
-function modeValue(arr) {
-  // retourne la valeur la plus fréquente, ou null
-  const counts = new Map();
-  for (const v of arr || []) {
-    if (!v || !v.trim()) continue;
-    const k = v.trim();
-    counts.set(k, (counts.get(k) || 0) + 1);
-  }
-  let best = null;
-  let bestN = 0;
-  for (const [k, n] of counts.entries()) {
-    if (n > bestN) {
-      bestN = n;
-      best = k;
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f7f7f7;
+      color: #111;
     }
-  }
-  return best;
+
+    header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #ddd;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #public-feed{
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;           /* scroll horizontal */
+  padding-bottom: 8px;        /* évite que la scrollbar cache le bas */
+  scroll-snap-type: x mandatory; /* snap sympa */
+  -webkit-overflow-scrolling: touch; /* inertie iOS */
 }
 
-// ----------------------------
-// Exercise Registry (généralisable)
-// ----------------------------
-function createExerciseRegistry() {
-  return {
-    // ⚠️ Tractions inchangé
-    Tractions: {
-      name: "Tractions",
-      mode: "reps",
-      initState: "hanging",
-      activeState: "pulling",
-      idleEndState: "pulling",
-
-      startHeadVsElbow: -0.02,
-      completeHeadVsWrist: 0.04,
-
-      requiredVisibility: 0.5,
-
-      canStart(landmarks) {
-        const nose = landmarks[0];
-        const leftElbow = landmarks[13];
-        const rightElbow = landmarks[14];
-
-        if (
-          !visOK(nose, this.requiredVisibility) ||
-          !visOK(leftElbow, this.requiredVisibility) ||
-          !visOK(rightElbow, this.requiredVisibility)
-        ) {
-          return false;
-        }
-
-        const headY = nose.y;
-        const avgElbowY = (leftElbow.y + rightElbow.y) / 2;
-        return headY > avgElbowY + this.startHeadVsElbow;
-      },
-
-      canComplete(landmarks) {
-        const nose = landmarks[0];
-        const leftWrist = landmarks[15];
-        const rightWrist = landmarks[16];
-
-        if (
-          !visOK(nose, this.requiredVisibility) ||
-          !visOK(leftWrist, this.requiredVisibility) ||
-          !visOK(rightWrist, this.requiredVisibility)
-        ) {
-          return false;
-        }
-
-        const headY = nose.y;
-        const avgWristY = (leftWrist.y + rightWrist.y) / 2;
-        return headY <= avgWristY + this.completeHeadVsWrist;
-      },
-
-      getAscentSignal(landmarks) {
-        const nose = landmarks[0];
-        return visOK(nose, 0.5) ? nose.y : null;
-      },
-    },
-
-    // ✅ Pompes: angle du coude (bras/avant-bras)
-    Pompes: {
-      name: "Pompes",
-      mode: "reps",
-      initState: "up",
-      activeState: "down",
-      idleEndState: "up",
-
-      topAngleDeg: 148,
-      bottomAngleDeg: 110,
-
-      requiredVisibility: 0.4,
-      armPolicy: "either",
-      hysteresisDeg: 3,
-
-      _elbowAngles(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const le = landmarks[13];
-        const re = landmarks[14];
-        const lw = landmarks[15];
-        const rw = landmarks[16];
-
-        const leftOK =
-          visOK(ls, this.requiredVisibility) &&
-          visOK(le, this.requiredVisibility) &&
-          visOK(lw, this.requiredVisibility);
-
-        const rightOK =
-          visOK(rs, this.requiredVisibility) &&
-          visOK(re, this.requiredVisibility) &&
-          visOK(rw, this.requiredVisibility);
-
-        const aL = leftOK ? angleDeg(ls, le, lw) : null;
-        const aR = rightOK ? angleDeg(rs, re, rw) : null;
-
-        return { aL, aR };
-      },
-
-      _effectiveAngle(landmarks) {
-        const { aL, aR } = this._elbowAngles(landmarks);
-
-        if (this.armPolicy === "both") {
-          if (aL == null || aR == null) return null;
-          return (aL + aR) / 2;
-        }
-
-        if (aL == null && aR == null) return null;
-        if (aL == null) return aR;
-        if (aR == null) return aL;
-        return (aL + aR) / 2;
-      },
-
-      canStart(landmarks) {
-        const ang = this._effectiveAngle(landmarks);
-        if (ang == null) return false;
-        return ang <= this.bottomAngleDeg + this.hysteresisDeg;
-      },
-
-      canComplete(landmarks) {
-        const ang = this._effectiveAngle(landmarks);
-        if (ang == null) return false;
-        return ang >= this.topAngleDeg - this.hysteresisDeg;
-      },
-
-      getAscentSignal(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        if (!visOK(ls, 0.35) || !visOK(rs, 0.35)) return null;
-        return (ls.y + rs.y) / 2;
-      },
-    },
-
-    // ✅ Handstand: timer en secondes (mode = "s")
-    Handstand: {
-      name: "Handstand",
-      mode: "s",
-      tracking: "timer",
-      initState: "off",
-      activeState: "on",
-      idleEndState: "off",
-
-      requiredVisibility: 0.4,
-
-      invertMarginY: 0.06,
-
-      straightStartDeg: 165,
-      straightStopDeg: 150,
-      hysteresisDeg: 2,
-
-      sidePolicy: "either",
-
-      _bodyAnglesAndInversion(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const lh = landmarks[23];
-        const rh = landmarks[24];
-        const la = landmarks[27];
-        const ra = landmarks[28];
-
-        const leftOK =
-          visOK(ls, this.requiredVisibility) &&
-          visOK(lh, this.requiredVisibility) &&
-          visOK(la, this.requiredVisibility);
-
-        const rightOK =
-          visOK(rs, this.requiredVisibility) &&
-          visOK(rh, this.requiredVisibility) &&
-          visOK(ra, this.requiredVisibility);
-
-        const aL = leftOK ? angleDeg(ls, lh, la) : null;
-        const aR = rightOK ? angleDeg(rs, rh, ra) : null;
-
-        const invL = leftOK ? la.y + this.invertMarginY < ls.y : null;
-        const invR = rightOK ? ra.y + this.invertMarginY < rs.y : null;
-
-        return { aL, aR, invL, invR };
-      },
-
-      _effectiveStraightAngle(landmarks) {
-        const { aL, aR } = this._bodyAnglesAndInversion(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (aL == null || aR == null) return null;
-          return (aL + aR) / 2;
-        }
-
-        if (aL == null && aR == null) return null;
-        if (aL == null) return aR;
-        if (aR == null) return aL;
-        return (aL + aR) / 2;
-      },
-
-      _isInverted(landmarks) {
-        const { invL, invR } = this._bodyAnglesAndInversion(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (invL == null || invR == null) return false;
-          return !!invL && !!invR;
-        }
-
-        if (invL == null && invR == null) return false;
-        if (invL == null) return !!invR;
-        if (invR == null) return !!invL;
-        return !!invL || !!invR;
-      },
-
-      canStart(landmarks) {
-        const inverted = this._isInverted(landmarks);
-        if (!inverted) return false;
-
-        const ang = this._effectiveStraightAngle(landmarks);
-        if (ang == null) return false;
-
-        return ang >= this.straightStartDeg - this.hysteresisDeg;
-      },
-
-      canComplete(landmarks) {
-        const inverted = this._isInverted(landmarks);
-        if (!inverted) return true;
-
-        const ang = this._effectiveStraightAngle(landmarks);
-        if (ang == null) return true;
-
-        return ang <= this.straightStopDeg + this.hysteresisDeg;
-      },
-
-      getAscentSignal(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        if (!visOK(ls, 0.35) || !visOK(rs, 0.35)) return null;
-        return (ls.y + rs.y) / 2;
-      },
-    },
-
-    // ✅ Handstand Push Up: reps + fin sur brisure de pose
-    "Handstand Push Up": {
-      name: "Handstand Push Up",
-      mode: "reps",
-      initState: "up",
-      activeState: "down",
-      idleEndState: "up",
-
-      endPolicy: "break_pose",
-      breakPoseGraceMs: 350,
-
-      requiredVisibility: 0.45,
-
-      invertMarginY: 0.06,
-      poseOkDeg: 150,
-
-      topAngleDeg: 150,
-      bottomAngleDeg: 105,
-      hysteresisDeg: 3,
-
-      armPolicy: "either",
-      sidePolicy: "either",
-
-      _bodyAnglesAndInversion(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const lh = landmarks[23];
-        const rh = landmarks[24];
-        const la = landmarks[27];
-        const ra = landmarks[28];
-
-        const leftOK =
-          visOK(ls, this.requiredVisibility) &&
-          visOK(lh, this.requiredVisibility) &&
-          visOK(la, this.requiredVisibility);
-
-        const rightOK =
-          visOK(rs, this.requiredVisibility) &&
-          visOK(rh, this.requiredVisibility) &&
-          visOK(ra, this.requiredVisibility);
-
-        const aL = leftOK ? angleDeg(ls, lh, la) : null;
-        const aR = rightOK ? angleDeg(rs, rh, ra) : null;
-
-        const invL = leftOK ? la.y + this.invertMarginY < ls.y : null;
-        const invR = rightOK ? ra.y + this.invertMarginY < rs.y : null;
-
-        return { aL, aR, invL, invR };
-      },
-
-      _effectivePoseAngle(landmarks) {
-        const { aL, aR } = this._bodyAnglesAndInversion(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (aL == null || aR == null) return null;
-          return (aL + aR) / 2;
-        }
-
-        if (aL == null && aR == null) return null;
-        if (aL == null) return aR;
-        if (aR == null) return aL;
-        return (aL + aR) / 2;
-      },
-
-      _isInverted(landmarks) {
-        const { invL, invR } = this._bodyAnglesAndInversion(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (invL == null || invR == null) return false;
-          return !!invL && !!invR;
-        }
-
-        if (invL == null && invR == null) return false;
-        if (invL == null) return !!invR;
-        if (invR == null) return !!invL;
-        return !!invL || !!invR;
-      },
-
-      isPoseValid(landmarks) {
-        const inverted = this._isInverted(landmarks);
-        if (!inverted) return false;
-        const ang = this._effectivePoseAngle(landmarks);
-        if (ang == null) return false;
-        return ang >= this.poseOkDeg;
-      },
-
-      _elbowAngles(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const le = landmarks[13];
-        const re = landmarks[14];
-        const lw = landmarks[15];
-        const rw = landmarks[16];
-
-        const leftOK =
-          visOK(ls, this.requiredVisibility) &&
-          visOK(le, this.requiredVisibility) &&
-          visOK(lw, this.requiredVisibility);
-
-        const rightOK =
-          visOK(rs, this.requiredVisibility) &&
-          visOK(re, this.requiredVisibility) &&
-          visOK(rw, this.requiredVisibility);
-
-        const aL = leftOK ? angleDeg(ls, le, lw) : null;
-        const aR = rightOK ? angleDeg(rs, re, rw) : null;
-
-        return { aL, aR };
-      },
-
-      _effectiveElbowAngle(landmarks) {
-        const { aL, aR } = this._elbowAngles(landmarks);
-
-        if (this.armPolicy === "both") {
-          if (aL == null || aR == null) return null;
-          return (aL + aR) / 2;
-        }
-
-        if (aL == null && aR == null) return null;
-        if (aL == null) return aR;
-        if (aR == null) return aL;
-        return (aL + aR) / 2;
-      },
-
-      canStart(landmarks) {
-        if (!this.isPoseValid(landmarks)) return false;
-
-        const ang = this._effectiveElbowAngle(landmarks);
-        if (ang == null) return false;
-        return ang <= this.bottomAngleDeg + this.hysteresisDeg;
-      },
-
-      canComplete(landmarks) {
-        if (!this._isInverted(landmarks)) return false;
-
-        const ang = this._effectiveElbowAngle(landmarks);
-        if (ang == null) return false;
-        return ang >= this.topAngleDeg - this.hysteresisDeg;
-      },
-
-      getAscentSignal(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        if (!visOK(ls, 0.35) || !visOK(rs, 0.35)) return null;
-        return (ls.y + rs.y) / 2;
-      },
-    },
-
-    // ✅ Planche: timer (s) + stop sur brisure d'alignement (pas idle)
-    Planche: {
-      name: "Planche",
-      mode: "s",
-      tracking: "timer",
-      initState: "off",
-      activeState: "on",
-      idleEndState: "off",
-
-      requiredVisibility: 0.45,
-
-      // Critères:
-      // 1) "ligne" torso/legs relativement droite: angle hip (shoulder-hip-ankle) proche de 180°
-      // 2) "horizontalité" approximative: shoulders et hips quasi au même niveau en y-image
-      // -> On stoppe si l'un des 2 casse de manière significative
-      straightStartDeg: 160,
-      straightStopDeg: 145,
-      hysteresisDeg: 2,
-
-      // shoulders ~ hips en y (planche = corps horizontal)
-      // y (image) : plus petit = plus haut. Ici on veut juste "proche".
-      shHipYStartMax: 0.07,
-      shHipYStopMax: 0.11,
-
-      // Bonus (pertinent) : épaules "devant" les poignets (planche lean)
-      // (en x-image, selon orientation caméra c'est fragile => on le met permissif)
-      requireShouldersAheadOfWrists: false,
-      shAheadWristXMargin: 0.01,
-
-      sidePolicy: "either", // either/both
-
-      _poseMetrics(landmarks) {
-        // L: shoulder 11, hip 23, ankle 27, wrist 15
-        // R: shoulder 12, hip 24, ankle 28, wrist 16
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        const lh = landmarks[23];
-        const rh = landmarks[24];
-        const la = landmarks[27];
-        const ra = landmarks[28];
-        const lw = landmarks[15];
-        const rw = landmarks[16];
-
-        const leftOK =
-          visOK(ls, this.requiredVisibility) &&
-          visOK(lh, this.requiredVisibility) &&
-          visOK(la, this.requiredVisibility);
-
-        const rightOK =
-          visOK(rs, this.requiredVisibility) &&
-          visOK(rh, this.requiredVisibility) &&
-          visOK(ra, this.requiredVisibility);
-
-        const aL = leftOK ? angleDeg(ls, lh, la) : null;
-        const aR = rightOK ? angleDeg(rs, rh, ra) : null;
-
-        const shHipYL = leftOK ? Math.abs(ls.y - lh.y) : null;
-        const shHipYR = rightOK ? Math.abs(rs.y - rh.y) : null;
-
-        const wristsOKL = visOK(lw, this.requiredVisibility) && visOK(ls, this.requiredVisibility);
-        const wristsOKR = visOK(rw, this.requiredVisibility) && visOK(rs, this.requiredVisibility);
-
-        // "épaules devant poignets" (optionnel / fragile mais parfois utile)
-        // si mirroring, ça peut être inversé. Donc désactivé par défaut.
-        const aheadL = wristsOKL ? (ls.x + this.shAheadWristXMargin < lw.x) : null;
-        const aheadR = wristsOKR ? (rs.x + this.shAheadWristXMargin < rw.x) : null;
-
-        return { aL, aR, shHipYL, shHipYR, aheadL, aheadR };
-      },
-
-      _effectiveAngle(landmarks) {
-        const { aL, aR } = this._poseMetrics(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (aL == null || aR == null) return null;
-          return (aL + aR) / 2;
-        }
-
-        if (aL == null && aR == null) return null;
-        if (aL == null) return aR;
-        if (aR == null) return aL;
-        return (aL + aR) / 2;
-      },
-
-      _effectiveShHipY(landmarks) {
-        const { shHipYL, shHipYR } = this._poseMetrics(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (shHipYL == null || shHipYR == null) return null;
-          return (shHipYL + shHipYR) / 2;
-        }
-
-        if (shHipYL == null && shHipYR == null) return null;
-        if (shHipYL == null) return shHipYR;
-        if (shHipYR == null) return shHipYL;
-        return (shHipYL + shHipYR) / 2;
-      },
-
-      _shouldersAheadWristsOK(landmarks) {
-        if (!this.requireShouldersAheadOfWrists) return true;
-        const { aheadL, aheadR } = this._poseMetrics(landmarks);
-
-        if (this.sidePolicy === "both") {
-          if (aheadL == null || aheadR == null) return false;
-          return !!aheadL && !!aheadR;
-        }
-
-        if (aheadL == null && aheadR == null) return false;
-        if (aheadL == null) return !!aheadR;
-        if (aheadR == null) return !!aheadL;
-        return !!aheadL || !!aheadR;
-      },
-
-      canStart(landmarks) {
-        const ang = this._effectiveAngle(landmarks);
-        const yDiff = this._effectiveShHipY(landmarks);
-        if (ang == null || yDiff == null) return false;
-
-        if (!this._shouldersAheadWristsOK(landmarks)) return false;
-
-        return (
-          ang >= this.straightStartDeg - this.hysteresisDeg &&
-          yDiff <= this.shHipYStartMax
-        );
-      },
-
-      canComplete(landmarks) {
-        const ang = this._effectiveAngle(landmarks);
-        const yDiff = this._effectiveShHipY(landmarks);
-
-        // si tracking trop mauvais: stop
-        if (ang == null || yDiff == null) return true;
-
-        // si lean critère activé et perdu: stop
-        if (!this._shouldersAheadWristsOK(landmarks)) return true;
-
-        // rupture: angle ou horizontalité cassés
-        if (ang <= this.straightStopDeg + this.hysteresisDeg) return true;
-        if (yDiff >= this.shHipYStopMax) return true;
-
-        return false;
-      },
-
-      getAscentSignal(landmarks) {
-        const ls = landmarks[11];
-        const rs = landmarks[12];
-        if (!visOK(ls, 0.35) || !visOK(rs, 0.35)) return null;
-        return (ls.y + rs.y) / 2;
-      },
-    },
+    #public-feed > div{
+      font-size: 12px;
+      flex: 0 0 320px;            /* largeur fixe de “carte” */
+      scroll-snap-align: start;
+    }
+
+    .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    font-size: 16px;
+    color: #111;
+    text-decoration: none; /* retire le soulignement */
+  }
+
+    .logo img {
+        height: 36px;
+        width: auto;
+        display: block;
+      }
+
+    .logo:hover {
+        opacity: 0.85; /* petit effet subtil sexy */
+      }
+
+
+
+    nav a {
+      margin-left: 16px;
+      text-decoration: none;
+      color: #333;
+      font-size: 14px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+      padding: 20px 18px;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .hero h1 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .hero p {
+      margin: 0 0 8px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    /* PROGRAMMES */
+
+    .workouts {
+      margin-bottom: 32px;
+    }
+
+    .workouts h2 {
+      margin-bottom: 8px;
+      font-size: 20px;
+    }
+
+    .workouts p {
+      margin-bottom: 16px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .workout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .workout-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .workout-card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .workout-card ul {
+      padding-left: 20px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .workout-card p {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .workout-level {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    /* JOURNAL STRUCTURÉ */
+
+    .structured-log {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .structured-log-header {
+      margin-bottom: 12px;
+    }
+
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .session-meta label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-meta input,
+    .session-meta select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+
+    .session-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+
+    table.session-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .session-table th,
+    .session-table td {
+      border: 1px solid #e2e2e2;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .session-table th {
+      background: #fafafa;
+      font-weight: 500;
+    }
+
+    .session-table input[type="text"],
+    .session-table input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-secondary {
+      background: #eee;
+    }
+
+    .btn-primary {
+      background: #000;
+      color: #fff;
+    }
+    .btn-auto-save{
+      display:flex; gap:10px; align-items:center;
+      padding:4px 8px;
+      border-radius:12px;
+      border:1px solid rgba(0, 0, 0, 0);
+      background: linear-gradient(135deg, #111827, #000000);
+      color:white;
+      font-weight:500;
+      cursor:pointer;
+    }
+    .btn-auto-save:hover{ transform: translateY(-1px); }
+    .badge-new{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+      background:#ff2d2d;
+      color:white;
+      letter-spacing:0.5px;
+    }
+
+    .remove-row-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .info {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    .dashboard {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .dashboard-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      align-items: flex-end;
+    }
+    .dashboard-controls .control {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .exercise-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .exercise-row select,
+    .exercise-row input {
+      height: 32px;
+    }
+
+
+    .dashboard-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dashboard-controls select,
+    .dashboard-controls input{
+      height:34px;
+      padding:6px 10px;
+      font-size:13px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      background:#fff;
+      box-sizing:border-box;
+      min-width:180px;
+    }
+
+    #exercise-chart {
+      max-width: 100%;
+      margin-top: 10px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 260px;       /* hauteur fixe du graphique */
+      margin-top: 10px;
+    }
+
+    #exercise-chart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+#sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sessions-history > .session-card {
+  flex: 0 0 400px;
+  scroll-snap-align: start;
+}
+
+#sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sessions-history > .session-card {
+  flex: 0 0 400px;
+  scroll-snap-align: start;
+}
+.session-card {
+
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+
+    .session-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .session-card-header span.label {
+      font-weight: 600;
+    }
+
+    .session-card-exos {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    /* JOURNAL LIBRE */
+
+    .nav-posts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-bottom: 16px;
+      margin-top: 10px;
+    }
+
+    .nav-posts button {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .nav-posts button.active {
+      border-color: #000;
+      font-weight: 600;
+    }
+
+    .post {
+      display: none;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      margin-bottom: 30px;
+    }
+
+    .post h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .post textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .post-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .post-actions button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-save {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-reset {
+      background: #eee;
+    }
+
+    .delete-session-btn {
+  margin-top: 8px;
+  background: #ffdddd;
+  color: #900;
+  border: 1px solid #cc0000;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.delete-session-btn:hover {
+  background: #ffcccc;
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">
+  <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+  <span>Calisthénie & ambition</span>
+</a>
+
+
+    <nav>
+      <a href="index.html">Accueil</a>
+      <a href="entrainements.html">Programmes & progression</a>
+      <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- UI for login publications and feed -->    
+
+<section class="structured-log" style="margin-top:16px;">
+  <h2 class="section-title">Communauté</h2>
+  <p style="font-size:14px;color:#555;">
+    Publie ta première séance (pseudo) et consulte le feed public pour t’inspirer. Attention, une fois ton pseudo saisi et validé, il n’est plus modifiable ! Plus bas tu trouveras l'outil d'entraînement conçu par un athlète pour les athlètes !
+  </p>
+
+  <div class="session-meta" style="align-items:flex-end;">
+    <label>
+      Email (login)
+      <input id="auth-email" type="email" placeholder="ton@email.com">
+    </label>
+
+    <label>
+      Mot de passe
+      <input id="auth-pass" type="password" placeholder="••••••••">
+    </label>
+
+    <button class="btn btn-secondary" type="button" onclick="signup();">
+      S’inscrire
+    </button>
+    <button class="btn btn-primary" type="button" onclick="login();">
+      Se connecter
+    </button>
+    <button class="btn btn-secondary" type="button" onclick="logout();">
+      Déconnexion
+    </button>
+  </div>
+
+  <div class="session-meta" style="margin-top:10px; align-items:flex-end;">
+    <label>
+      Pseudo (public)
+      <input id="public-username" type="text" placeholder="ex: cali_ambition">
+    </label>
+
+    <button class="btn btn-primary" type="button" onclick="publishLastSession()">
+      Enregistrer mon pseudo
+    </button>
+      <div class="top-right-actions">
+    <button id="autoSaveBtn" class="btn-auto-save">
+      <span class="badge-new">LIVE</span>
+      Enregistrer une séance automatiquement en DIRECT
+    </button>
+  </div>
+  </div>
+
+
+  <div class="info" id="community-info"></div>
+
+  <hr style="border:none;border-top:1px solid #eee;margin:14px 0;">
+
+  <h3 style="margin:0 0 8px;font-size:15px;">Feed public (dernières séances)</h3>
+  <div id="public-feed"></div>
+
+
+
+
+</section>
+
+    <!-- INTRO -->
+    <section class="hero">
+      <h1>Programmes & journal de progression</h1>
+      <p>
+        Cette page présente un outil clé pour qui crée la différence en terme de motivation : le suivi automatisé de chaque séance que tu réalises.
+        En tant qu'athlète, j'ai longuement rêvé d'avoir un tel outil à ma disposition : désormais, il est là, le hack, à toi de jouer !
+        En bas de cette page, je t'ai aussi proposé trois grandes classes de niveaux – <strong>débutant</strong>, <strong>intermédiaire</strong>
+        et <strong>avancé / pro</strong> – avec des exemples de structures d’entraînement. Il y a évidemment une infinité de façons de combiner les exercices. Ma proposition est un point de départ. Sois libre de l'adapter à ton niveau, en intégrant des exercices à difficulté variable !
+      </p>
+      <p>
+        L’idée est de :
+      </p>
+      <ul style="margin-top: 4px; padding-left: 18px; font-size: 14px;">
+        <li>si besoin choisir un niveau qui te parle (ou en tester plusieurs),</li>
+        <li>exécuter les exercices selon ta capacité actuelle,</li>
+        <li>documenter ta progression et tes ressentis au fil des séances avec le super outil que je te propose en bas,</li>
+        <li>apprécier au fil du temps ton progrès à travers les courbes réalisées automatiquement à partir de tes séances.</li>
+        <li> ⚠️ il est extrêmement important de ne pas oublier de réaliser un échauffement des muscles avant d'attaquer les exercices.</li>
+        <li> je t'invite à lire 
+  <a href="echauffement.html" target="_blank" style="text-decoration:none; color:#111; font-weight:500;">
+    mon article
+  </a> 
+  (en cours de rédaction) sur l'échauffement présentant un exemple d'exercices préparant à l'effort physique.
+</li>
+</section>
+
+    <!-- JOURNAL STRUCTURÉ (TABLEAU) -->
+<section class="structured-log">
+  <div class="structured-log-header">
+    <h2 class="section-title">Journal structuré de séance</h2>
+    <p style="font-size: 14px; color:#555;">
+      Utilise ce tableau pour consigner une séance précise : date, niveau, durée, exercices,
+      éventuel lest, répétitions par série et ressenti global. Les données sont stockées dans ce navigateur.
+    </p>
+  </div>
+
+  <div class="session-meta">
+    <label>
+      Date de la séance
+      <input type="date" id="session-date" />
+    </label>
+
+    <label>
+      Durée (minutes)
+      <input type="number" id="session-duration" min="0" step="1" />
+    </label>
+  </div>
+
+  <div class="session-table-wrapper">
+    <table class="session-table">
+      <thead>
+        <tr>
+          <th>Exercice</th>
+          <th>Lest (kg)</th>
+          <th>Série 1</th>
+          <th>Série 2</th>
+          <th>Série 3</th>
+          <th>Série 4</th>
+          <th>Série 5</th>
+          <th>Série 6</th>
+          <th>Série 7</th>
+          <th>Série 8</th>
+          <th>Ressenti</th>
+          <th></th>
+        </tr>
+      </thead>
+
+      <tbody id="session-rows">
+        <!-- lignes ajoutées en JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="session-actions">
+    <button class="btn btn-secondary" type="button" onclick="addExerciseRow()">
+      Ajouter un exercice
+    </button>
+    <button class="btn btn-primary" type="button" onclick="saveStructuredSession()">
+      Enregistrer la séance
+    </button>
+  </div>
+
+  <div class="info" id="session-save-info"></div>
+        <div class="sessions-history">
+        <h3 style="font-size: 15px; margin: 6px 0 4px;">Historique des séances</h3>
+        <p style="font-size: 12px; color:#555; margin:0 0 6px;">
+          Les dernières séances enregistrées s’affichent ci-dessous (stockées uniquement dans ce navigateur).
+        </p>
+        <div id="sessions-history"></div>
+      </div>
+
+</section>
+
+    <!-- TABLEAU DE BORD -->
+    <section class="dashboard">
+      <h2 class="section-title">Tableau de bord de progression</h2>
+      <p style="font-size: 14px; color:#555;">
+        Sélectionne un exercice et une métrique pour visualiser ta progression au fil des séances.
+        Les données proviennent de ton journal structuré et restent stockées uniquement dans ce navigateur.
+      </p>
+
+
+      <div class="dashboard-controls">
+      <div class="control">
+        <label>Exercice à analyser</label>
+        <div class="exercise-row">
+          <select id="dashboard-exercise">
+            <option value="Tractions">Tractions</option>
+            <option value="Pompes">Pompes</option>
+            <option value="Dips">Dips</option>
+            <option value="Planche lean">Planche lean</option>
+            <option value="Tuck planche">Tuck planche</option>
+            <option value="Straddle planche">Straddle planche</option>
+            <option value="Full planche">Full planche</option>
+            <option value="Handstand">Handstand</option>
+            <option value="One Arm Handstand">One Arm Handstand</option>
+            <option value="Handstand Push Up">Handstand Push Up</option>
+            <option value="Human Flag">Human Flag</option>
+            <option value="Front Lever">Front Lever</option>
+            <option value="Muscle Up">Muscle Up</option>
+            <option value="__custom_reps__">Autre... (Reps)</option>
+            <option value="__custom_hold__">Autre... (Hold)</option>
+
+          </select>
+
+          <input
+            id="custom-exercise"
+            type="text"
+            placeholder="Nom de l'exercice"
+            style="display:none;"
+          />
+        </div>
+      </div>
+
+      <div class="control">
+        <label>Métrique</label>
+        <select id="dashboard-metric"></select>
+      </div>
+    </div>
+
+
+    <div class="chart-wrapper">
+      <canvas id="exercise-chart"></canvas>
+    </div>
+
+      <div class="info" id="dashboard-info"></div>
+    </section>
+
+        </section>
+
+    <!-- ANNEXE : PROGRAMMES -->
+    <section class="workouts">
+      <h2>[Annexe] Programmes par niveau</h2>
+      <p>
+        Voici une base de travail. Tu peux t’en servir comme référence, comme point de départ,
+        ou comme cadre pour organiser tes propres séances.
+      </p>
+
+      <div class="workout-grid">
+        <!-- Débutant -->
+        <article class="workout-card">
+          <div class="workout-level">Débutant</div>
+          <h3>Routine full body simple</h3>
+          <ul>
+            <li>3 × 8–10 pompes inclinées (mains sur le sol / canapé)</li>
+            <li>3 × 10 squats au poids du corps</li>
+            <li>3 × 20 s gainage planche</li>
+            <li>3 × 5-10 tractions négatives </li>
+          </ul>
+          <p>
+            Objectif : apprendre les bases, sentir les mouvements, construire une première régularité
+            sans écraser le système nerveux.
+          </p>
+        </article>
+
+        <!-- Intermédiaire -->
+        <article class="workout-card">
+          <div class="workout-level">Intermédiaire</div>
+          <h3>Routine traction / push</h3>
+          <ul>
+            <li>4 × 6–8 tractions strictes</li>
+            <li>4 × 8–12 pompes classiques</li>
+            <li>3 × 8 dips sur barres ou chaises</li>
+            <li>4 x 10 s hold handstand au mur ou libre si tu es à l'aise</li>
+            <li>4 x 3-10s hold tuck planche </li>
+            <li>4 x 3-7 handstand push ups si tu es tenace</li>
+            
+
+          </ul>
+          <p>
+            Objectif : consolider la force de base et préparer le terrain pour les skills
+            (muscle-up, front lever, planche variantes plus avancées).
+          </p>
+        </article>
+
+        <!-- Avancé / Pro -->
+        <article class="workout-card">
+          <div class="workout-level">Avancé / Pro</div>
+          <h3>Session skills & explosivité</h3>
+          <ul>
+            <li>Muscle-up : 5–8 séries de variations (explosives, assistées, négatives)</li>
+            <li>Front lever : 5 × 10–15 s sur ta progression actuelle (tuck, advanced tuck, straddle…)</li>
+            <li>Handstand push ups: 4 x 3–12 (mur + freestanding)</li>
+            <li>Planche : 5 x 3-10s sur la progression la plus adaptée (tuck, straddle ou full si tu te sens monstrueux)</li>
+          </ul>
+          <p>
+            Objectif : développer les skills, la musculature, et la force d'un ogre.
+          </p>
+        </article>
+      </div>
+    </section>
+  
+  </main>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+/* =========================================================
+   CalisthenicsAmbition – entrainements.html (FULL SCRIPT)
+   - Supabase v2 via window.supabaseClient (déjà créé dans <head>)
+   - Smooth UI: cache sessions + scheduler + anti double-render chart
+   ========================================================= */
+
+/* ---------- CONFIG / HELPERS ---------- */
+
+const supabaseClient = window.supabaseClient;
+if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
+  console.error("Supabase client invalide", supabaseClient);
+}
+
+function escapeHtml(str) {
+  return String(str ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function uiInfo(msg) {
+  const el = document.getElementById("community-info");
+  if (el) el.textContent = msg || "";
+}
+
+function normalizeTodayISODate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function getAuthedUserOrWarn(infoEl) {
+  const { data, error } = await supabaseClient.auth.getUser();
+  if (error) {
+    console.error("[auth] getUser error", error);
+    infoEl && (infoEl.textContent = "❌ Erreur auth (voir console).");
+    return null;
+  }
+  if (!data?.user) {
+    infoEl && (infoEl.textContent = "⚠️ Connecte-toi pour enregistrer et voir tes séances.");
+    return null;
+  }
+  return data.user;
+}
+
+/* ---------- EXERCISES ---------- */
+
+const REPS_EXERCISES = [
+  "Tractions","Pompes","Dips","Handstand Push Up","Muscle Up",
+];
+
+const HOLD_EXERCISES = [
+  "Planche lean","Tuck planche","Straddle planche","Full planche",
+  "Handstand","One Arm Handstand","Human Flag","Front Lever",
+];
+
+function isCustomHoldSelected() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  return exerciseSelect?.value === "__custom_hold__";
+}
+
+function isHoldExercise(name) {
+  if (isCustomHoldSelected()) return true;
+  return HOLD_EXERCISES.includes(name);
+}
+
+function getSelectedExerciseName() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const customInput = document.getElementById("custom-exercise");
+  if (!exerciseSelect) return "";
+
+  const v = exerciseSelect.value;
+  if (v === "__custom_reps__" || v === "__custom_hold__") {
+    return (customInput?.value || "").trim();
+  }
+  return v;
+}
+
+/* =========================================================
+   SMOOTH UI CORE: cache + scheduler + anti spam refresh
+   ========================================================= */
+
+let __uiBusy = false;
+let __uiSeq = 0;
+
+let __sessionsCache = [];
+let __sessionsCacheUserId = null;
+let __sessionsCacheAt = 0;
+
+let __chartSeq = 0;
+let __feedSeq = 0;
+let __feedInFlight = null;
+
+function debounce(fn, wait = 120) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
   };
 }
 
-export class Game {
-  constructor(renderDiv) {
-    this.renderDiv = renderDiv;
+function isSessionsCacheFresh() {
+  return (Date.now() - __sessionsCacheAt) < 15000; // 15s
+}
 
-    // Session context
-    this.ctx = null;
-    this.sessionStartedAt = null;
-
-    // Registry
-    this.EXERCISES = createExerciseRegistry();
-    this.exercise = this.EXERCISES["Tractions"];
-
-    // Three
-    this.scene = null;
-    this.camera = null;
-    this.renderer = null;
-
-    // DOM
-    this.videoElement = null;
-    this.startScreenOverlay = null;
-    this.startButton = null;
-    this.counterContainer = null;
-    this.counterDisplay = null;
-    this.gameOverContainer = null;
-    this.gameOverText = null;
-    this.loadingText = null;
-    this.weightKgInput = null;
-    this.saveSessionBtn = null;
-    this.restartSetBtn = null;
-
-    // Menu
-    this.exerciseSelect = null;
-
-    // ✅ PATCH: menu live + bouton back
-    this.liveMenuContainer = null;
-    this.backButton = null;
-    this.isSwitchingExercise = false;
-    this.autoFinalizeOnSwitch = true;
-
-    // ✅ Timer state (Handstand/Planche)
-    this.holdStartMs = null;
-    this.lastTimerUiUpdateMs = 0;
-    this.timerUiEveryMs = 100;
-
-    // ✅ Break-pose state (HSPU)
-    this.lastTrackedLandmarks = null;
-    this.poseBrokenSinceMs = null;
-
-    // ✅ Planche variants (1 variante par set)
-    this.plancheSetVariants = []; // index aligned with this.sets
-    this.plancheSetCustoms = [];  // si "Autre"
-    this._plancheVariantUI = null;
-
-    // MediaPipe
-    this.poseLandmarker = null;
-    this.lastVideoTime = -1;
-    this.numPosesToTrack = 1;
-    this.poses = [];
-    this.lastLandmarkPositions = [];
-
-    // State
-    this.gameState = "loading";
-    this.clock = new THREE.Clock();
-    this.audioManager = new AudioManager();
-    this.smoothingFactor = 0.4;
-
-    // FSM reps
-    this.repState = this.exercise.initState;
-    this.repStarted = false;
-    this.consecutiveFramesRequired = 2;
-    this.stateFrameCount = 0;
-    this.lastStateChange = Date.now();
-    this.minTimeBetweenStateChanges = 100;
-
-    // Sets
-    this.sets = [];
-    this.currentSetReps = 0;
-    this.lastRepTimeMs = Date.now();
-    this.setEndIdleMs = 2500;
-    this.minRepsToAutoEnd = 1;
-
-    // Anti-idle
-    this.prevAscentSignal = null;
-    this.isAscending = false;
-    this.ascendEps = 0.0015;
-    this.lastAscentTimeMs = Date.now();
-
-    // Visuals
-    this.poseLineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 });
-    this.circleMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-
-    this.poseConnections = [
-      [11, 12],
-      [11, 23],
-      [12, 24],
-      [23, 24],
-      [11, 13],
-      [13, 15],
-      [12, 14],
-      [14, 16],
-      [23, 25],
-      [25, 27],
-      [24, 26],
-      [26, 28],
-    ];
-    this.poseKeypointIndices = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
-
-    this._init().catch((err) => {
-      console.error("Initialization failed:", err);
-      this._showError("Initialization failed. Check console.");
-    });
+async function fetchSessionsIntoCache({ force = false } = {}) {
+  const { data: authData, error: authErr } = await supabaseClient.auth.getUser();
+  if (authErr) {
+    console.error("[cache] auth error", authErr);
+    return __sessionsCache || [];
   }
 
-  setContext(ctx) {
-    this.ctx = ctx || null;
-    const ex = (this.ctx?.exercise || "Tractions").trim();
-    if (this.EXERCISES[ex]) this._setExercise(ex);
-    console.log("[game] ctx set:", this.ctx, "| exercise =", this.exercise?.name);
+  const user = authData?.user;
+  if (!user) {
+    __sessionsCache = [];
+    __sessionsCacheUserId = null;
+    __sessionsCacheAt = Date.now();
+    return __sessionsCache;
   }
 
-  _setExercise(exName) {
-    const cfg = this.EXERCISES[exName] || this.EXERCISES["Tractions"];
-    this.exercise = cfg;
-
-    if (!this.ctx) this.ctx = {};
-    this.ctx.exercise = cfg.name;
-    this.ctx.mode = cfg.mode;
-
-    this.repState = cfg.initState;
-    this.repStarted = false;
-    this.stateFrameCount = 0;
-    this.lastStateChange = Date.now();
-
-    // reset timer state on exercise change
-    this.holdStartMs = null;
-    this.lastTimerUiUpdateMs = 0;
-
-    // reset break-pose state
-    this.lastTrackedLandmarks = null;
-    this.poseBrokenSinceMs = null;
-
-    // reset planche UI (but keep recorded variants for current session unless you switch exercise)
-    this._removePlancheVariantUI();
-
-    if (this.exerciseSelect) this.exerciseSelect.value = cfg.name;
-
-    // sync live select
-    const liveSelect = this.liveMenuContainer?.querySelector("select");
-    if (liveSelect) liveSelect.value = cfg.name;
-
-    console.log("[game] exercise configured:", cfg.name);
+  if (!force && __sessionsCacheUserId === user.id && isSessionsCacheFresh()) {
+    return __sessionsCache;
   }
 
-  async _init() {
-    this._setupDOMReferences();
-    this._setupThree();
-    await this._setupPoseTracking();
-    await this.videoElement.play();
+  const { data, error } = await supabaseClient
+    .from("workout_sessions")
+    .select("id, session_date, payload, created_at")
+    .eq("user_id", user.id)
+    .order("session_date", { ascending: true });
 
-    window.addEventListener("resize", () => this._onResize());
-    this.gameState = "ready";
-    this._showStartButton();
-    this._animate();
+  if (error) {
+    console.error("[cache] fetch sessions error", error);
+    return __sessionsCache || [];
   }
 
-  _setupDOMReferences() {
-    this.videoElement = document.getElementById("videoElement");
-    this.startScreenOverlay = document.getElementById("startScreenOverlay");
-    this.startButton = document.getElementById("startButton");
-    this.counterContainer = document.getElementById("counterContainer");
-    this.counterDisplay = document.getElementById("counterDisplay");
-    this.gameOverContainer = document.getElementById("gameOverContainer");
-    this.gameOverText = document.getElementById("gameOverText");
-    this.loadingText = document.getElementById("loadingText");
-    this.weightKgInput = document.getElementById("weightKgInput");
-    this.saveSessionBtn = document.getElementById("saveSessionBtn");
-    this.restartSetBtn = document.getElementById("restartSetBtn");
+  __sessionsCache = (data || [])
+    .map(r => ({ id: r.id, ...(r.payload || {}) }))
+    .filter(s => s && s.date);
 
-    // menus + bouton back
-    this._injectExerciseMenuOverlay();
-    this._injectExerciseMenuLive(); // top-right (container), mais le menu lui-même sera top-center via style
-    this._injectBackButtonLive();
+  __sessionsCacheUserId = user.id;
+  __sessionsCacheAt = Date.now();
+  return __sessionsCache;
+}
 
-    this.startButton.onclick = () => this._startGame();
+async function getStructuredSessions() {
+  return await fetchSessionsIntoCache({ force: false });
+}
 
-    if (this.saveSessionBtn) {
-      this.saveSessionBtn.addEventListener("click", async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        try {
-          const payload = this._buildSessionPayload();
-          await this._saveSessionToSupabase(payload);
-          this.saveSessionBtn.style.display = "none";
-          this._showStatusScreen("✅ Séance enregistrée !", "white", true);
-        } catch (err) {
-          console.error("[save] crash ❌", err);
-          this._showStatusScreen("❌ Erreur sauvegarde (voir console)", "orange", true);
-        }
-      });
-    }
+function clearPrivateUI() {
+  // history
+  const hist = document.getElementById("sessions-history");
+  if (hist) hist.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
 
-    if (this.restartSetBtn) {
-      this.restartSetBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (this.gameState === "paused") this._startNewSet();
-      });
-    }
+  // save info
+  const info = document.getElementById("session-save-info");
+  if (info) info.textContent = "";
+
+  // username input
+  const input = document.getElementById("public-username");
+  if (input) {
+    input.disabled = false;
+    input.title = "";
+    input.value = "";
   }
 
-  // menu overlay (Start screen)
-  _injectExerciseMenuOverlay() {
-    if (!this.startScreenOverlay) return;
+  // dashboard
+  const dashInfo = document.getElementById("dashboard-info");
+  if (dashInfo) dashInfo.textContent = "Connecte-toi pour voir ton tableau de bord.";
 
-    const menu = document.createElement("div");
-    menu.style.cssText = `
-      position: relative;
-      margin: 0 auto 12px auto;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      flex-wrap: wrap;
-    `;
+  if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
 
-    const label = document.createElement("div");
-    label.textContent = "Exercice :";
-    label.style.cssText = "color: white; font-weight: 600; font-size: 14px;";
+  // reset cache
+  __sessionsCache = [];
+  __sessionsCacheUserId = null;
+  __sessionsCacheAt = Date.now();
+}
 
-    const select = document.createElement("select");
-    select.style.cssText = `
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(0,0,0,0.35);
-      color: white;
-      font-size: 14px;
-      outline: none;
-      cursor: pointer;
-    `;
-
-    Object.keys(this.EXERCISES).forEach((k) => {
-      const opt = document.createElement("option");
-      opt.value = k;
-      opt.textContent = k;
-      select.appendChild(opt);
-    });
-
-    select.value = this.exercise?.name || "Tractions";
-
-    select.addEventListener("change", () => {
-      this._setExercise(select.value);
-      const liveSelect = this.liveMenuContainer?.querySelector("select");
-      if (liveSelect) liveSelect.value = select.value;
-    });
-
-    menu.appendChild(label);
-    menu.appendChild(select);
-
-    if (this.startButton?.parentElement) {
-      this.startButton.parentElement.insertBefore(menu, this.startButton);
-    } else {
-      this.startScreenOverlay.appendChild(menu);
-    }
-
-    this.exerciseSelect = select;
-  }
-
-  // menu live (pendant l'exercice) -> ✅ TOP-CENTER demandé
-  _injectExerciseMenuLive() {
-    if (!this.renderDiv) return;
-
-    const wrap = document.createElement("div");
-    wrap.style.cssText = `
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 999999;
-      display: none; /* affiché à Start */
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    `;
-
-    const row = document.createElement("div");
-    row.style.cssText = `
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: center;
-    `;
-
-    const label = document.createElement("div");
-    label.textContent = "Exercice :";
-    label.style.cssText = "color: white; font-weight: 600; font-size: 13px;";
-
-    const select = document.createElement("select");
-    select.style.cssText = `
-      padding: 6px 8px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(0,0,0,0.35);
-      color: white;
-      font-size: 13px;
-      outline: none;
-      cursor: pointer;
-    `;
-
-    Object.keys(this.EXERCISES).forEach((k) => {
-      const opt = document.createElement("option");
-      opt.value = k;
-      opt.textContent = k;
-      select.appendChild(opt);
-    });
-
-    select.value = this.exercise?.name || "Tractions";
-    select.addEventListener("change", () => this._handleExerciseSwitch(select.value));
-
-    row.appendChild(label);
-    row.appendChild(select);
-    wrap.appendChild(row);
-
-    const s = getComputedStyle(this.renderDiv);
-    if (s.position === "static") this.renderDiv.style.position = "relative";
-
-    this.renderDiv.appendChild(wrap);
-    this.liveMenuContainer = wrap;
-  }
-
-  // bouton "page précédente" (pendant l'exercice) -> top-left
-  _injectBackButtonLive() {
-    if (!this.renderDiv) return;
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "↩ Quitter";
-    btn.style.cssText = `
-      position: absolute;
-      top: 60px;
-      left: 12px;
-      z-index: 999999;
-      display: none; /* affiché à Start */
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(0,0,0,0.35);
-      color: white;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    `;
-
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const isTimer = this.exercise?.tracking === "timer" || this.exercise?.mode === "s";
-      if (this.gameState === "tracking" && this.autoFinalizeOnSwitch) {
-        if (this.currentSetReps >= 1) this._finalizeSet();
-        else if (isTimer && this.holdStartMs != null) this._finalizeSet();
-      }
-
-      try {
-        window.history.back();
-      } catch {
-        window.location.href = "/";
-      }
-    });
-
-    const s = getComputedStyle(this.renderDiv);
-    if (s.position === "static") this.renderDiv.style.position = "relative";
-
-    this.renderDiv.appendChild(btn);
-    this.backButton = btn;
-  }
-
-  async _handleExerciseSwitch(nextExerciseName) {
-    if (this.isSwitchingExercise) return;
-    if (!this.EXERCISES[nextExerciseName]) return;
-    if (nextExerciseName === this.exercise?.name) return;
-
-    this.isSwitchingExercise = true;
+const scheduleUIRefresh = (() => {
+  const run = async ({ forceSessions = false, forceFeed = false } = {}) => {
+    if (__uiBusy) return;
+    __uiBusy = true;
+    const my = ++__uiSeq;
 
     try {
-      if (this.exerciseSelect) this.exerciseSelect.value = nextExerciseName;
+      // feed (public)
+      if (forceFeed) await loadPublicFeed({ force: true });
+      else await loadPublicFeed();
 
-      if (this.gameState === "tracking") {
-        if (this.autoFinalizeOnSwitch && this.currentSetReps >= 1) {
-          this._finalizeSet();
-        }
-        this._setExercise(nextExerciseName);
+      // user session
+      const { data: sessData } = await supabaseClient.auth.getSession();
+      const user = sessData?.session?.user || null;
 
-        // si on change d'exercice, on reset les variantes planche du run en cours
-        if (nextExerciseName !== "Planche") {
-          // on garde les variants si tu reviens à planche pendant la session ? -> ici on garde.
-        }
-
-        this._startNewSet();
-      } else if (this.gameState === "paused") {
-        this._setExercise(nextExerciseName);
-        this._startNewSet();
-      } else {
-        this._setExercise(nextExerciseName);
-      }
-    } finally {
-      this.isSwitchingExercise = false;
-    }
-  }
-
-  _setupThree() {
-    const { clientWidth: width, clientHeight: height } = this.renderDiv;
-
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.OrthographicCamera(width / -2, width / 2, height / 2, height / -2, 1, 1000);
-    this.camera.position.z = 100;
-
-    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-
-    Object.assign(this.renderer.domElement.style, { position: "absolute", top: "0", left: "0", zIndex: "1" });
-    this.renderDiv.appendChild(this.renderer.domElement);
-
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    directionalLight.position.set(0, 0, 100);
-    this.scene.add(directionalLight);
-
-    for (let i = 0; i < this.numPosesToTrack; i++) {
-      const lineGroup = new THREE.Group();
-      lineGroup.visible = false;
-      this.scene.add(lineGroup);
-
-      this.poses.push({ landmarks: null, anchorPos: new THREE.Vector3(), lineGroup });
-      this.lastLandmarkPositions.push([]);
-    }
-  }
-
-  async _setupPoseTracking() {
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
-    );
-
-    this.poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions: {
-        modelAssetPath:
-          "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-        delegate: "GPU",
-      },
-      numPoses: this.numPosesToTrack,
-      runningMode: "VIDEO",
-      outputSegmentationMasks: false,
-    });
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-      audio: false,
-    });
-
-    this.videoElement.srcObject = stream;
-
-    return new Promise((resolve) => {
-      this.videoElement.onloadedmetadata = () => resolve();
-    });
-  }
-
-  _getVisibleVideoParameters() {
-    if (!this.videoElement || this.videoElement.videoWidth === 0 || this.videoElement.videoHeight === 0) return null;
-
-    const vNatW = this.videoElement.videoWidth;
-    const vNatH = this.videoElement.videoHeight;
-    const rW = this.renderDiv.clientWidth;
-    const rH = this.renderDiv.clientHeight;
-    if (!vNatW || !vNatH || !rW || !rH) return null;
-
-    const videoAR = vNatW / vNatH;
-    const renderDivAR = rW / rH;
-
-    let offsetX, offsetY, visibleWidth, visibleHeight;
-
-    if (videoAR > renderDivAR) {
-      const scale = rH / vNatH;
-      const scaledVideoWidth = vNatW * scale;
-      const totalCroppedPixelsX = (scaledVideoWidth - rW) / scale;
-      offsetX = totalCroppedPixelsX / 2;
-      offsetY = 0;
-      visibleWidth = vNatW - totalCroppedPixelsX;
-      visibleHeight = vNatH;
-    } else {
-      const scale = rW / vNatW;
-      const scaledVideoHeight = vNatH * scale;
-      const totalCroppedPixelsY = (scaledVideoHeight - rH) / scale;
-      offsetX = 0;
-      offsetY = totalCroppedPixelsY / 2;
-      visibleWidth = vNatW;
-      visibleHeight = vNatH - totalCroppedPixelsY;
-    }
-
-    return { offsetX, offsetY, visibleWidth, visibleHeight, videoNaturalWidth: vNatW, videoNaturalHeight: vNatH };
-  }
-
-  _startGame() {
-    if (this.gameState !== "ready") return;
-
-    if (this.exerciseSelect?.value) this._setExercise(this.exerciseSelect.value);
-
-    this.sessionStartedAt = new Date().toISOString();
-    this.audioManager.resumeContext();
-    if (this.startScreenOverlay) this.startScreenOverlay.style.display = "none";
-    if (this.startButton) this.startButton.style.display = "none";
-    if (this.counterContainer) this.counterContainer.style.display = "block";
-
-    if (this.liveMenuContainer) this.liveMenuContainer.style.display = "block";
-    if (this.backButton) this.backButton.style.display = "block";
-
-    this.sets = [];
-    this.plancheSetVariants = [];
-    this.plancheSetCustoms = [];
-    this._startNewSet();
-  }
-
-  _startNewSet() {
-    if (this.gameOverContainer) this.gameOverContainer.style.display = "none";
-    if (this.restartSetBtn) this.restartSetBtn.style.display = "none";
-    if (this.saveSessionBtn) this.saveSessionBtn.style.display = "none";
-
-    this._removePlancheVariantUI();
-
-    this.gameState = "tracking";
-    this.lastVideoTime = -1;
-    this.clock.start();
-
-    this.currentSetReps = 0;
-
-    this.repState = this.exercise.initState;
-    this.repStarted = false;
-    this.stateFrameCount = 0;
-    this.lastStateChange = Date.now();
-
-    this.holdStartMs = null;
-    this.lastTimerUiUpdateMs = 0;
-
-    this.lastTrackedLandmarks = null;
-    this.poseBrokenSinceMs = null;
-
-    this.lastRepTimeMs = Date.now();
-    this.prevAscentSignal = null;
-    this.isAscending = false;
-    this.lastAscentTimeMs = Date.now();
-
-    this._updateCounterDisplay();
-  }
-
-  _finalizeSet() {
-    if (this.currentSetReps >= this.minRepsToAutoEnd) this.sets.push(this.currentSetReps);
-
-    this.gameState = "paused";
-
-    const isTimer = this.exercise?.tracking === "timer" || this.exercise?.mode === "s";
-    const unit = isTimer ? "s" : "reps";
-
-    this._showStatusScreen(
-      `Set terminé: ${this.currentSetReps} ${unit}\nTotal sets: ${this.sets.length} (${this.sets.join(" / ")})`,
-      "white",
-      true
-    );
-
-    // ✅ Si Planche: demander la variante pour CE set
-    if (this.exercise?.name === "Planche" && this.currentSetReps >= 1) {
-      const setIndex = this.sets.length - 1; // aligné car push déjà fait
-      this._showPlancheVariantUI(setIndex);
-    }
-
-    if (this.restartSetBtn) this.restartSetBtn.style.display = "inline-block";
-    if (this.saveSessionBtn) this.saveSessionBtn.style.display = "block";
-  }
-
-  _checkEndOfSet() {
-    if (this.gameState !== "tracking") return;
-
-    // ✅ fin de set sur brisure de pose (Handstand Push Up)
-    if (this.exercise?.endPolicy === "break_pose") {
-      const lm = this.lastTrackedLandmarks;
-      if (!lm?.length) return;
-
-      const ok = this.exercise.isPoseValid?.(lm);
-      const now = Date.now();
-
-      if (ok) {
-        this.poseBrokenSinceMs = null;
+      if (!user) {
+        clearPrivateUI();
         return;
       }
 
-      if (this.poseBrokenSinceMs == null) this.poseBrokenSinceMs = now;
-
-      const grace = this.exercise.breakPoseGraceMs ?? 300;
-      if (now - this.poseBrokenSinceMs >= grace) {
-        this._finalizeSet();
-      }
-      return;
-    }
-
-    // ✅ Handstand/Planche timer: finalize sur brisure dans _trackTimer (pas idle)
-    if (this.exercise?.tracking === "timer" || this.exercise?.mode === "s") return;
-
-    const now = Date.now();
-    const idle = now - this.lastRepTimeMs;
-
-    if (this.isAscending) return;
-    const idleSinceAscent = now - this.lastAscentTimeMs;
-
-    if (
-      this.repState === this.exercise.idleEndState &&
-      this.currentSetReps >= this.minRepsToAutoEnd &&
-      idle >= this.setEndIdleMs &&
-      idleSinceAscent >= this.setEndIdleMs
-    ) {
-      this._finalizeSet();
-    }
-  }
-
-  _trackMovement(landmarks) {
-    if (!landmarks?.length || !this.exercise) return;
-
-    if (this.exercise?.tracking === "timer" || this.exercise?.mode === "s") {
-      this._trackTimer(landmarks);
-      return;
-    }
-
-    const ascentSignal = this.exercise.getAscentSignal?.(landmarks);
-    if (ascentSignal != null) {
-      if (this.prevAscentSignal !== null) {
-        const delta = ascentSignal - this.prevAscentSignal;
-        this.isAscending = delta < -this.ascendEps;
-        if (this.isAscending) this.lastAscentTimeMs = Date.now();
-      }
-      this.prevAscentSignal = ascentSignal;
-    }
-
-    const now = Date.now();
-    if (now - this.lastStateChange < this.minTimeBetweenStateChanges) return;
-
-    let newState = this.repState;
-
-    if (this.repState === this.exercise.initState) {
-      if (!this.repStarted && this.exercise.canStart(landmarks, this)) {
-        this.stateFrameCount++;
-        if (this.stateFrameCount >= this.consecutiveFramesRequired) {
-          newState = this.exercise.activeState;
-          this.repStarted = true;
-          this.audioManager.playStartBeep();
-          this.stateFrameCount = 0;
-          this.lastAscentTimeMs = Date.now();
-        }
-      } else {
-        this.stateFrameCount = 0;
-      }
-    } else if (this.repState === this.exercise.activeState) {
-      if (this.repStarted && this.exercise.canComplete(landmarks, this)) {
-        this.stateFrameCount++;
-        if (this.stateFrameCount >= this.consecutiveFramesRequired) {
-          newState = this.exercise.initState;
-
-          this.currentSetReps++;
-          this.lastRepTimeMs = Date.now();
-          this.lastAscentTimeMs = Date.now();
-
-          this.audioManager.playCelebrationSound();
-          this._updateCounterDisplay();
-
-          this.stateFrameCount = 0;
-          this.repStarted = false;
-        }
-      } else {
-        this.stateFrameCount = 0;
-      }
-    }
-
-    if (newState !== this.repState) {
-      this.repState = newState;
-      this.lastStateChange = now;
-    }
-  }
-
-  // ✅ Timer tracking (Handstand + Planche)
-  _trackTimer(landmarks) {
-    const now = Date.now();
-    if (now - this.lastStateChange < this.minTimeBetweenStateChanges) return;
-
-    let newState = this.repState;
-
-    if (this.repState === this.exercise.initState) {
-      if (!this.repStarted && this.exercise.canStart(landmarks, this)) {
-        this.stateFrameCount++;
-        if (this.stateFrameCount >= this.consecutiveFramesRequired) {
-          newState = this.exercise.activeState;
-          this.repStarted = true;
-          this.audioManager.playStartBeep();
-          this.stateFrameCount = 0;
-          this.lastStateChange = now;
-
-          this.holdStartMs = now;
-          this.currentSetReps = 0;
-          this._updateCounterDisplay();
-        }
-      } else {
-        this.stateFrameCount = 0;
-      }
-    } else if (this.repState === this.exercise.activeState) {
-      if (this.holdStartMs != null) {
-        const elapsedSec = Math.max(0, (now - this.holdStartMs) / 1000);
-        const secInt = Math.floor(elapsedSec);
-        if (secInt !== this.currentSetReps) {
-          this.currentSetReps = secInt;
-        }
-
-        if (now - this.lastTimerUiUpdateMs >= this.timerUiEveryMs) {
-          this.lastTimerUiUpdateMs = now;
-          this._updateCounterDisplay();
-        }
+      // username UI lock
+      if (typeof initUsernameUI === "function") {
+        await initUsernameUI();
+        if (my !== __uiSeq) return;
       }
 
-      if (this.repStarted && this.exercise.canComplete(landmarks, this)) {
-        this.stateFrameCount++;
-        if (this.stateFrameCount >= this.consecutiveFramesRequired) {
-          newState = this.exercise.initState;
-          this.stateFrameCount = 0;
-          this.repStarted = false;
+      // cache sessions once
+      await fetchSessionsIntoCache({ force: forceSessions });
+      if (my !== __uiSeq) return;
 
-          if (this.holdStartMs != null) {
-            const elapsedSec = Math.max(0, (now - this.holdStartMs) / 1000);
-            this.currentSetReps = Math.max(this.currentSetReps, Math.floor(elapsedSec));
-          }
-          this.holdStartMs = null;
+      // render private UI from cache only (no network)
+      await renderStructuredSessionsHistory({ useCache: true });
+      if (my !== __uiSeq) return;
 
-          this.audioManager.playCelebrationSound();
-          this._updateCounterDisplay();
-          this._finalizeSet();
-          return;
-        }
-      } else {
-        this.stateFrameCount = 0;
-      }
+      await renderExerciseChart();
+    } finally {
+      __uiBusy = false;
     }
+  };
 
-    if (newState !== this.repState) {
-      this.repState = newState;
-      this.lastStateChange = now;
+  return debounce(run, 120);
+})();
+
+/* =========================================================
+   STRUCTURED LOG (table)
+   ========================================================= */
+
+function createExerciseRow(data) {
+  const tr = document.createElement("tr");
+
+  tr.innerHTML = `
+    <td>
+      <select class="ex-name">
+        <option value="">– Sélectionne –</option>
+        <option value="Tractions">Tractions</option>
+        <option value="Pompes">Pompes</option>
+        <option value="Dips">Dips</option>
+        <option value="Planche lean">Planche lean</option>
+        <option value="Tuck planche">Tuck planche</option>
+        <option value="Straddle planche">Straddle planche</option>
+        <option value="Full planche">Full planche</option>
+        <option value="Handstand">Handstand</option>
+        <option value="One Arm Handstand">One Arm Handstand</option>
+        <option value="Handstand Push Up">Handstand Push Up</option>
+        <option value="Human Flag">Human Flag</option>
+        <option value="Front Lever">Front Lever</option>
+        <option value="Muscle Up">Muscle Up</option>
+        <option value="__custom_reps__">Autre... (Reps)</option>
+        <option value="__custom_hold__">Autre... (Hold)</option>
+      </select>
+      <input type="text" class="ex-custom" placeholder="Nom de l'exercice…"
+        style="display:none; margin-top:6px;" />
+    </td>
+    <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
+    <td><input type="number" class="ex-s1" min="0" step="1" value="${data?.s1 || ""}"></td>
+    <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
+    <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
+    <td><input type="number" class="ex-s4" min="0" step="1" value="${data?.s4 || ""}"></td>
+    <td><input type="number" class="ex-s5" min="0" step="1" value="${data?.s5 || ""}"></td>
+    <td><input type="number" class="ex-s6" min="0" step="1" value="${data?.s6 || ""}"></td>
+    <td><input type="number" class="ex-s7" min="0" step="1" value="${data?.s7 || ""}"></td>
+    <td><input type="number" class="ex-s8" min="0" step="1" value="${data?.s8 || ""}"></td>
+    <td><input type="text" class="ex-ressenti" placeholder="Ressenti global" value="${data?.ressenti || ""}"></td>
+    <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
+  `;
+
+  const select = tr.querySelector(".ex-name");
+  const custom = tr.querySelector(".ex-custom");
+
+  function syncRowCustom() {
+    const v = select.value;
+    const isCustom = (v === "__custom_reps__" || v === "__custom_hold__");
+    custom.style.display = isCustom ? "block" : "none";
+    if (!isCustom) custom.value = "";
+  }
+
+  select.addEventListener("change", syncRowCustom);
+  syncRowCustom();
+
+  if (data?.name) {
+    tr.querySelector(".ex-name").value = data.name;
+    syncRowCustom();
+  }
+
+  return tr;
+}
+
+function addExerciseRow(prefillData) {
+  const tbody = document.getElementById("session-rows");
+  if (!tbody) return;
+  tbody.appendChild(createExerciseRow(prefillData));
+}
+
+function removeExerciseRow(btn) {
+  const tr = btn.closest("tr");
+  if (tr) tr.remove();
+}
+
+async function saveStructuredSession() {
+  const dateInput = document.getElementById("session-date");
+  const durationInput = document.getElementById("session-duration");
+  const rows = document.querySelectorAll("#session-rows tr");
+  const info = document.getElementById("session-save-info");
+
+  const user = await getAuthedUserOrWarn(info);
+  if (!user) return;
+
+  if (!dateInput.value) dateInput.value = normalizeTodayISODate();
+
+  const session = {
+    date: dateInput.value,
+    duration: durationInput.value || "",
+    exercises: []
+  };
+
+  rows.forEach(row => {
+    const selectVal = row.querySelector(".ex-name")?.value || "";
+    const customVal = (row.querySelector(".ex-custom")?.value || "").trim();
+
+    const isCustomReps = selectVal === "__custom_reps__";
+    const isCustomHold = selectVal === "__custom_hold__";
+    const isCustom = isCustomReps || isCustomHold;
+
+    const name = isCustom ? customVal : selectVal;
+
+    const mode = isCustom
+      ? (isCustomHold ? "hold" : "reps")
+      : (isHoldExercise(selectVal) ? "hold" : "reps");
+
+    if (isCustom && !name) return;
+
+    const weight = row.querySelector(".ex-weight")?.value || "0";
+    const s1 = row.querySelector(".ex-s1")?.value || "";
+    const s2 = row.querySelector(".ex-s2")?.value || "";
+    const s3 = row.querySelector(".ex-s3")?.value || "";
+    const s4 = row.querySelector(".ex-s4")?.value || "";
+    const s5 = row.querySelector(".ex-s5")?.value || "";
+    const s6 = row.querySelector(".ex-s6")?.value || "";
+    const s7 = row.querySelector(".ex-s7")?.value || "";
+    const s8 = row.querySelector(".ex-s8")?.value || "";
+    const ressenti = (row.querySelector(".ex-ressenti")?.value || "").trim();
+
+    if (name || s1 || s2 || s3 || s4 || s5 || s6 || s7 || s8 || ressenti || weight !== "0") {
+      session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
     }
-  }
+  });
+  // ✅ PATCH: récupérer le pseudo depuis user_profiles (source de vérité)
+  let publicUsername = "";
 
-  _updateCounterDisplay() {
-    const setsText = this.sets.length ? ` | Sets: ${this.sets.join(" / ")}` : "";
-    const ex = this.exercise?.name || "Exercice";
-
-    const isTimer = this.exercise?.tracking === "timer" || this.exercise?.mode === "s";
-    if (isTimer) {
-      this.counterDisplay.textContent = `${ex} — Time: ${this.currentSetReps}s${setsText}`;
-      return;
-    }
-
-    this.counterDisplay.textContent = `${ex} — Reps: ${this.currentSetReps}${setsText}`;
-  }
-
-  _updatePose() {
-    if (
-      !this.poseLandmarker ||
-      !this.videoElement.srcObject ||
-      this.videoElement.readyState < 2 ||
-      this.videoElement.videoWidth === 0
-    )
-      return;
-
-    const videoTime = this.videoElement.currentTime;
-    if (videoTime <= this.lastVideoTime) return;
-    this.lastVideoTime = videoTime;
-
-    const results = this.poseLandmarker.detectForVideo(this.videoElement, performance.now());
-    if (!results?.landmarks?.length) {
-      this.poses.forEach((p) => p.lineGroup && (p.lineGroup.visible = false));
-      return;
-    }
-
-    const videoParams = this._getVisibleVideoParameters();
-    if (!videoParams) return;
-
-    const { clientWidth: canvasWidth, clientHeight: canvasHeight } = this.renderDiv;
-
-    this.poses.forEach((pose, i) => {
-      if (results.landmarks[i]?.length > 0) {
-        const currentRawLandmarks = results.landmarks[i];
-
-        if (!this.lastLandmarkPositions[i] || this.lastLandmarkPositions[i].length !== currentRawLandmarks.length) {
-          this.lastLandmarkPositions[i] = currentRawLandmarks.map((lm) => ({ ...lm }));
-        }
-
-        const smoothedLandmarks = currentRawLandmarks.map((lm, lmIndex) => {
-          const prevLm = this.lastLandmarkPositions[i][lmIndex];
-          return {
-            x: this.smoothingFactor * lm.x + (1 - this.smoothingFactor) * prevLm.x,
-            y: this.smoothingFactor * lm.y + (1 - this.smoothingFactor) * prevLm.y,
-            z: this.smoothingFactor * lm.z + (1 - this.smoothingFactor) * prevLm.z,
-            visibility: lm.visibility,
-          };
-        });
-
-        this.lastLandmarkPositions[i] = smoothedLandmarks.map((lm) => ({ ...lm }));
-        pose.landmarks = smoothedLandmarks;
-
-        this.lastTrackedLandmarks = smoothedLandmarks;
-
-        if (this.gameState === "tracking") this._trackMovement(smoothedLandmarks);
-
-        this._updatePoseVisuals(i, smoothedLandmarks, videoParams, canvasWidth, canvasHeight);
-        pose.lineGroup.visible = true;
-      } else {
-        pose.landmarks = null;
-        if (pose.lineGroup) pose.lineGroup.visible = false;
-      }
-    });
-  }
-
-  _updatePoseVisuals(poseIndex, landmarks, videoParams, canvasWidth, canvasHeight) {
-    const pose = this.poses[poseIndex];
-    const lineGroup = pose.lineGroup;
-
-    while (lineGroup.children.length) {
-      const child = lineGroup.children[0];
-      lineGroup.remove(child);
-      if (child.geometry) child.geometry.dispose();
-      if (child.material && child.material !== this.poseLineMaterial && child.material !== this.circleMaterial) {
-        child.material.dispose?.();
-      }
-    }
-
-    const points3D = landmarks.map((lm) => {
-      const lmOriginalX = lm.x * videoParams.videoNaturalWidth;
-      const lmOriginalY = lm.y * videoParams.videoNaturalHeight;
-
-      const normX = clamp01((lmOriginalX - videoParams.offsetX) / videoParams.visibleWidth);
-      const normY = clamp01((lmOriginalY - videoParams.offsetY) / videoParams.visibleHeight);
-
-      const x = (1 - normX) * canvasWidth - canvasWidth / 2;
-      const y = (1 - normY) * canvasHeight - canvasHeight / 2;
-
-      const isVisible = (lm.visibility ?? 0) > 0.3;
-      return new THREE.Vector3(x, y, isVisible ? 1.1 : -10000);
-    });
-
-    const lineZ = 1.0;
-    const circleRadius = isMobile ? 6 : 8;
-
-    this.poseConnections.forEach(([a, b]) => {
-      const p1 = points3D[a];
-      const p2 = points3D[b];
-      if (p1?.z > -1000 && p2?.z > -1000) {
-        const geometry = new THREE.BufferGeometry().setFromPoints([p1.clone().setZ(lineZ), p2.clone().setZ(lineZ)]);
-        lineGroup.add(new THREE.Line(geometry, this.poseLineMaterial));
-      }
-    });
-
-    this.poseKeypointIndices.forEach((idx) => {
-      const pos = points3D[idx];
-      if (!pos || pos.z <= -1000) return;
-
-      let color = 0x0000ff;
-      if (idx === 0) color = 0xff0000;
-      else if (idx === 13 || idx === 14) color = 0xffff00;
-      else if (idx === 15 || idx === 16) color = 0x00ff00;
-
-      const material = color === 0x0000ff ? this.circleMaterial : new THREE.MeshBasicMaterial({ color });
-      const circle = new THREE.Mesh(new THREE.CircleGeometry(circleRadius, 16), material);
-      circle.position.copy(pos);
-      circle.position.z = lineZ + 0.1;
-      lineGroup.add(circle);
-    });
-
-    lineGroup.visible = true;
-  }
-
-  _showStartButton() {
-    if (this.loadingText) this.loadingText.style.display = "none";
-    if (this.startButton) this.startButton.style.display = "block";
-  }
-
-  _showStatusScreen(message, color = "white") {
-    if (!this.gameOverContainer || !this.gameOverText) return;
-    this.gameOverContainer.style.display = "block";
-    this.gameOverText.innerText = message;
-    this.gameOverText.style.color = color;
-  }
-
-  _showError(message) {
-    this.gameState = "error";
-    this._showStatusScreen(`ERROR: ${message}`, "orange");
-  }
-
-  _onResize() {
-    const { clientWidth: width, clientHeight: height } = this.renderDiv;
-    this.camera.left = width / -2;
-    this.camera.right = width / 2;
-    this.camera.top = height / 2;
-    this.camera.bottom = height / -2;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
-  }
-
-  _animate() {
-    requestAnimationFrame(() => this._animate());
-    if (this.gameState === "tracking") {
-      this._updatePose();
-      this._checkEndOfSet();
-    }
-    this.renderer.render(this.scene, this.camera);
-  }
-
-  // ----------------------------
-  // ✅ Planche variant UI
-  // ----------------------------
-  _removePlancheVariantUI() {
-    if (this._plancheVariantUI?.parentElement) {
-      this._plancheVariantUI.parentElement.removeChild(this._plancheVariantUI);
-    }
-    this._plancheVariantUI = null;
-  }
-
-  _showPlancheVariantUI(setIndex) {
-    if (!this.gameOverContainer) return;
-
-    this._removePlancheVariantUI();
-
-    const wrap = document.createElement("div");
-    wrap.style.cssText = `
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-start;
-      max-width: 360px;
-    `;
-
-    const title = document.createElement("div");
-    title.textContent = "Variante de Planche (pour ce set) :";
-    title.style.cssText = "font-weight: 700; font-size: 13px;";
-
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex; gap:8px; align-items:center; width:100%; flex-wrap:wrap;";
-
-    const select = document.createElement("select");
-    select.style.cssText = `
-      padding: 7px 9px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(0,0,0,0.35);
-      color: white;
-      font-size: 13px;
-      outline: none;
-      cursor: pointer;
-    `;
-
-    const options = ["Straddle", "Full", "Tuck", "Autre"];
-    options.forEach((v) => {
-      const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
-      select.appendChild(opt);
-    });
-
-    // default: Tuck (comme demandé "par défaut")
-    select.value = this.plancheSetVariants[setIndex] || "Tuck";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Autre (ex: Advanced tuck)";
-    input.style.cssText = `
-      padding: 7px 9px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(0,0,0,0.25);
-      color: white;
-      font-size: 13px;
-      outline: none;
-      display: none;
-      min-width: 180px;
-    `;
-
-    input.value = this.plancheSetCustoms[setIndex] || "";
-
-    const apply = () => {
-      const v = select.value;
-      this.plancheSetVariants[setIndex] = v;
-
-      if (v === "Autre") {
-        input.style.display = "inline-block";
-        this.plancheSetCustoms[setIndex] = (input.value || "").trim();
-      } else {
-        input.style.display = "none";
-        this.plancheSetCustoms[setIndex] = "";
-      }
-    };
-
-    select.addEventListener("change", apply);
-    input.addEventListener("input", apply);
-    apply();
-
-    row.appendChild(select);
-    row.appendChild(input);
-
-    const hint = document.createElement("div");
-    hint.textContent = "Le nom sauvegardé sera par ex: “Straddle planche”.";
-    hint.style.cssText = "font-size: 12px; opacity: 0.9;";
-
-    wrap.appendChild(title);
-    wrap.appendChild(row);
-    wrap.appendChild(hint);
-
-    this.gameOverContainer.appendChild(wrap);
-    this._plancheVariantUI = wrap;
-  }
-
-  _getFinalPlancheExerciseName() {
-    // On choisit la variante la plus fréquente sur la session.
-    // Si mix: on prend la "mode" (la plus fréquente). Si égalité: la dernière.
-    const variants = (this.plancheSetVariants || []).map((v, i) => {
-      if (!v) return "";
-      if (v === "Autre") {
-        const custom = (this.plancheSetCustoms?.[i] || "").trim();
-        return custom ? custom : "Autre";
-      }
-      return v;
-    });
-
-    const unique = uniq(variants);
-    if (!unique.length) return "Tuck planche"; // défaut safe
-
-    const most = modeValue(variants);
-    let chosen = most || variants[variants.length - 1] || unique[0];
-
-    chosen = chosen.trim();
-    if (!chosen) chosen = "Tuck";
-
-    return `${chosen} planche`;
-  }
-
-  // ----------------------------
-  // Payload / Save
-  // ----------------------------
-  _buildSessionPayload() {
-    const sets = [...this.sets];
-
-    const baseExName = this.exercise?.name || this.ctx?.exercise || "Tractions";
-    const exMode = this.exercise?.mode || this.ctx?.mode || "reps";
-
-    // ✅ Planche: renommer selon variante au moment du Save
-    let exName = baseExName;
-    if (baseExName === "Planche") {
-      exName = this._getFinalPlancheExerciseName();
-    }
-
-    return {
-      date: this.ctx?.sessionDate || new Date().toISOString().slice(0, 10),
-      duration: "",
-      exercises: [
-        {
-          name: exName,
-          mode: exMode,
-          weight: String(Number(this.weightKgInput?.value || 0)),
-          s1: sets[0]?.toString() || "",
-          s2: sets[1]?.toString() || "",
-          s3: sets[2]?.toString() || "",
-          s4: sets[3]?.toString() || "",
-          s5: sets[4]?.toString() || "",
-          s6: sets[5]?.toString() || "",
-          s7: sets[6]?.toString() || "",
-          s8: sets[7]?.toString() || "",
-          ressenti: "",
-        },
-      ],
-    };
-  }
-
-  async _ensureUsername() {
-    if (this.ctx?.username) return;
-
-    const { data, error } = await supabase
+  try {
+    const { data: profile, error: profErr } = await supabaseClient
       .from("user_profiles")
       .select("username")
-      .eq("user_id", this.ctx.userId)
-      .single();
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (error) {
-      console.warn("[game] cannot fetch username", error);
-      return;
-    }
-    this.ctx.username = data?.username || "alif";
+    if (profErr) console.warn("[saveStructuredSession] profile fetch error", profErr);
+    publicUsername = (profile?.username || "").trim();
+  } catch (e) {
+    console.warn("[saveStructuredSession] profile fetch crash", e);
   }
 
-  async _saveSessionToSupabase(finalPayload) {
-    if (!this.ctx?.userId) {
-      console.warn("[save] No ctx.userId, skip saving");
-      return;
+  // Fallback: si vraiment aucun pseudo, mets un libellé neutre (PAS l'email)
+  const safeDisplayUsername =
+    publicUsername ||
+    (user.user_metadata?.username || user.user_metadata?.name || "").toString().trim() ||
+    "Utilisateur";
+
+  const row = {
+    user_id: user.id,
+    username: safeDisplayUsername,
+    session_date: session.date,
+    payload: session
+  };
+
+
+  info && (info.textContent = "⏳ Enregistrement Supabase...");
+
+  const { error } = await supabaseClient.from("workout_sessions").insert([row]);
+  if (error) {
+    console.error("[save] supabase insert error", error);
+    info && (info.textContent = "❌ Erreur Supabase (voir console).");
+    return;
+  }
+
+  const d = new Date(session.date);
+  const formatted = isNaN(d.getTime()) ? session.date : d.toLocaleDateString();
+  info && (info.textContent = `✅ Séance enregistrée pour le ${formatted} (Supabase).`);
+
+  // ✅ Smooth: one scheduled refresh
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+/* history render from cache (smooth) */
+async function renderStructuredSessionsHistory({ useCache = false } = {}) {
+  const container = document.getElementById("sessions-history");
+  if (!container) return;
+
+  const { data: sessData } = await supabaseClient.auth.getSession();
+  const user = sessData?.session?.user || null;
+
+  if (!user) {
+    container.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+    return;
+  }
+
+  const sessions = useCache ? (__sessionsCache || []) : await fetchSessionsIntoCache({ force: true });
+
+  if (!sessions.length) {
+    container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+    return;
+  }
+
+  let html = "";
+
+  sessions.slice().reverse().forEach((s) => {
+    const d = new Date(s.date);
+    const dateStr = isNaN(d.getTime()) ? (s.date || "") : d.toLocaleDateString();
+
+    const durationStr =
+      s.duration !== undefined && s.duration !== null && String(s.duration).trim() !== ""
+        ? String(s.duration)
+        : "–";
+
+    html += `
+      <div class="session-card">
+        <div class="session-card-header">
+          <span class="label">Séance du ${escapeHtml(dateStr)}</span>
+          <span>Durée : ${escapeHtml(durationStr)} min</span>
+        </div>
+
+        <ul class="session-card-exos">
+          ${
+            (s.exercises || []).map(ex => {
+              const name = escapeHtml(ex.name || "Exercice");
+              const weightStr = ex.weight !== undefined && ex.weight !== null ? String(ex.weight) : "0";
+              const lest = (weightStr && weightStr !== "0") ? ` (lest : ${escapeHtml(weightStr)} kg)` : "";
+
+              const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+                .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
+                .join(" / ");
+
+              const unit = ex.mode === "hold" ? "s" : "reps";
+              const seriesText = series ? ` – ${escapeHtml(series)} ${unit}` : "";
+              const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
+
+              return `<li>${name}${lest}${seriesText}${ressenti}</li>`;
+            }).join("")
+          }
+        </ul>
+
+        <button class="delete-session-btn" type="button" onclick="deleteSessionHistory(${s.id})">
+          Supprimer cette séance
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+async function deleteSessionHistory(id) {
+  const info = document.getElementById("session-save-info");
+  const user = await getAuthedUserOrWarn(info);
+  if (!user) return;
+
+  const ok = confirm("Supprimer cette séance ? (irréversible)");
+  if (!ok) return;
+
+  const { error } = await supabaseClient
+    .from("workout_sessions")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("[delete] supabase error", error);
+    info && (info.textContent = "❌ Erreur suppression (voir console).");
+    return;
+  }
+
+  info && (info.textContent = "✅ Séance supprimée.");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+/* =========================================================
+   DASHBOARD (chart) – smooth
+   ========================================================= */
+
+let exerciseChart = null;
+
+function updateMetricOptions() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  if (!exerciseSelect || !metricSelect) return;
+
+  const exName = exerciseSelect.value;
+  metricSelect.innerHTML = "";
+
+  let options = [];
+
+  if (isHoldExercise(exName)) {
+    options = [
+      { value: "avg_hold", label: "Moyenne des holds" },
+      { value: "max_hold", label: "Max des holds" },
+      { value: "count_hold", label: "Nombre de holds" },
+      { value: "sum_hold", label: "Somme des holds" }
+    ];
+  } else {
+    options = [
+      { value: "avg_reps", label: "Moyenne des reps" },
+      { value: "max_rep", label: "Max des reps" },
+      { value: "count_sets", label: "Nombre de séries" },
+      { value: "sum_reps", label: "Somme des reps" }
+    ];
+  }
+
+  options.forEach(opt => {
+    const o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    metricSelect.appendChild(o);
+  });
+}
+
+async function buildChartData(exerciseName, metricKey) {
+  // ✅ cache: no network spam
+  const sessions = await getStructuredSessions();
+  const labels = [];
+  const data = [];
+
+  sessions.forEach(s => {
+    const exercises = s.exercises || [];
+    const matching = exercises.filter(ex => ex.name === exerciseName);
+    if (!matching.length) return;
+
+    let values = [];
+    matching.forEach(ex => {
+      const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+        .map(v => Number(v))
+        .filter(v => Number.isFinite(v) && v > 0);
+      values = values.concat(nums);
+    });
+
+    if (!values.length) return;
+
+    let pointValue = 0;
+
+    if (isHoldExercise(exerciseName)) {
+      const sum = values.reduce((a, b) => a + b, 0);
+      const avg = sum / values.length;
+      const max = Math.max(...values);
+      const count = values.length;
+
+      if (metricKey === "avg_hold") pointValue = avg;
+      else if (metricKey === "max_hold") pointValue = max;
+      else if (metricKey === "count_hold") pointValue = count;
+      else if (metricKey === "sum_hold") pointValue = sum;
+    } else {
+      const sum = values.reduce((a, b) => a + b, 0);
+      const count = values.length;
+      const avg = sum / count;
+      const max = Math.max(...values);
+
+      if (metricKey === "sum_reps") pointValue = sum;
+      else if (metricKey === "avg_reps") pointValue = avg;
+      else if (metricKey === "count_sets") pointValue = count;
+      else if (metricKey === "max_rep") pointValue = max;
     }
 
-    await this._ensureUsername();
+    const d = new Date(s.date);
+    const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
+    labels.push(dateStr);
+    data.push(pointValue);
+  });
 
-    const row = {
-      user_id: this.ctx.userId,
-      username: this.ctx.username,
-      session_date: finalPayload.date || new Date().toISOString().slice(0, 10),
-      payload: finalPayload,
-    };
+  return { labels, data };
+}
 
-    const { data, error } = await supabase.from("workout_sessions").insert([row]).select();
-    if (error) {
-      console.error("[save] Supabase insert error ❌", error);
-      throw error;
+async function renderExerciseChart() {
+  const my = ++__chartSeq;
+
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  const info = document.getElementById("dashboard-info");
+  const ctx = document.getElementById("exercise-chart");
+
+  if (!exerciseSelect || !metricSelect || !ctx) return;
+
+  // if not authed, keep clean UI
+  const { data: sessData } = await supabaseClient.auth.getSession();
+  const user = sessData?.session?.user || null;
+  if (!user) {
+    info.textContent = "Connecte-toi pour voir ton tableau de bord.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  const exerciseName = getSelectedExerciseName();
+  if (!exerciseName) {
+    info.textContent = "Choisis un exercice ou saisis un nom pour l'exercice personnalisé.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  const metricKey = metricSelect.value;
+
+  // Persist UI choices locally
+  localStorage.setItem("last-selected-exercise-select", exerciseSelect.value);
+  localStorage.setItem("last-selected-exercise", exerciseName);
+  localStorage.setItem("last-selected-metric", metricKey);
+
+  const { labels, data } = await buildChartData(exerciseName, metricKey);
+
+  // ✅ ignore obsolete renders
+  if (my !== __chartSeq) return;
+
+  if (!labels.length) {
+    info.textContent = "Aucune donnée trouvée pour cet exercice et cette métrique.";
+    if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+    return;
+  }
+
+  info.textContent = "";
+
+  if (exerciseChart) exerciseChart.destroy();
+
+  exerciseChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
+        data,
+        borderWidth: 2,
+        tension: 0.2,
+        pointRadius: 3
+      }]
+    },
+    plugins: [ChartDataLabels],
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 24, right: 8, left: 4 } },
+      scales: {
+        x: { title: { display: true, text: "Séances" } },
+        y: { title: { display: true, text: "Valeur" }, beginAtZero: true }
+      },
+      plugins: {
+        legend: { position: "bottom" },
+        datalabels: {
+          anchor: "end",
+          align: "top",
+          offset: 4,
+          font: { size: 10 },
+          formatter: (value) => Number.isInteger(value) ? value : value.toFixed(1)
+        }
+      }
     }
+  });
+}
 
-    console.log("[save] inserted ✅", data);
+async function initDashboard() {
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const metricSelect = document.getElementById("dashboard-metric");
+  if (!exerciseSelect || !metricSelect) return;
+
+  const customInput = document.getElementById("custom-exercise");
+
+  // restore select
+  const savedSelect = localStorage.getItem("last-selected-exercise-select");
+  if (savedSelect) {
+    const exists = Array.from(exerciseSelect.options).some(o => o.value === savedSelect);
+    if (exists) exerciseSelect.value = savedSelect;
+  }
+
+  function syncCustomUI() {
+    if (!customInput) return;
+    const isCustom = (exerciseSelect.value === "__custom_reps__" || exerciseSelect.value === "__custom_hold__");
+    customInput.style.display = isCustom ? "block" : "none";
+
+    if (isCustom) {
+      const key = (exerciseSelect.value === "__custom_hold__")
+        ? "custom-hold-exercise-name"
+        : "custom-reps-exercise-name";
+      const savedName = localStorage.getItem(key) || "";
+      if (!customInput.value) customInput.value = savedName;
+    } else {
+      // optional: keep value, or clear:
+      // customInput.value = "";
+    }
+  }
+
+  syncCustomUI();
+  updateMetricOptions();
+
+  const savedMetric = localStorage.getItem("last-selected-metric");
+  if (savedMetric) {
+    const exists = Array.from(metricSelect.options).some(o => o.value === savedMetric);
+    if (exists) metricSelect.value = savedMetric;
+  }
+
+  await renderExerciseChart();
+
+  // listeners (async-safe)
+  exerciseSelect.addEventListener("change", async () => {
+    syncCustomUI();
+    updateMetricOptions();
+    await renderExerciseChart();
+  });
+
+  metricSelect.addEventListener("change", async () => {
+    await renderExerciseChart();
+  });
+
+  if (customInput) {
+    customInput.addEventListener("input", async () => {
+      const name = (customInput.value || "").trim();
+      const key = (exerciseSelect.value === "__custom_hold__")
+        ? "custom-hold-exercise-name"
+        : "custom-reps-exercise-name";
+      localStorage.setItem(key, name);
+      await renderExerciseChart();
+    });
   }
 }
+
+function initStructuredLog() {
+  addExerciseRow();
+}
+
+/* =========================================================
+   NOTES (local only)
+   ========================================================= */
+
+function showPost(id) {
+  for (let i = 1; i <= 4; i++) {
+    const post = document.getElementById("post-" + i);
+    const btn = document.getElementById("btn-post-" + i);
+    if (!post || !btn) continue;
+
+    if (i === id) {
+      post.style.display = "block";
+      btn.classList.add("active");
+    } else {
+      post.style.display = "none";
+      btn.classList.remove("active");
+    }
+  }
+}
+
+function savePost(id) {
+  const textarea = document.getElementById("textarea-" + id);
+  const info = document.getElementById("info-" + id);
+  const key = "journal-content-" + id;
+
+  if (!textarea) return;
+  localStorage.setItem(key, textarea.value);
+  const now = new Date().toLocaleString();
+  if (info) info.textContent = "Enregistré le " + now + " (stocké dans ce navigateur uniquement)";
+}
+
+function resetPost(id) {
+  const textarea = document.getElementById("textarea-" + id);
+  const info = document.getElementById("info-" + id);
+  const key = "journal-content-" + id;
+
+  if (textarea) textarea.value = "";
+  localStorage.removeItem(key);
+  if (info) info.textContent = "";
+}
+
+function loadPosts() {
+  for (let i = 1; i <= 4; i++) {
+    const textarea = document.getElementById("textarea-" + i);
+    const info = document.getElementById("info-" + i);
+    const key = "journal-content-" + i;
+
+    if (!textarea) continue;
+    const saved = localStorage.getItem(key);
+    if (saved !== null) {
+      textarea.value = saved;
+      if (info) info.textContent = "Contenu récupéré depuis ce navigateur.";
+    }
+  }
+  showPost(1);
+}
+
+/* =========================================================
+   COMMUNITY: username + feed + auth
+   ========================================================= */
+
+async function getOrCreateUsername(inputUsername) {
+  const { data: auth } = await supabaseClient.auth.getUser();
+  const user = auth?.user;
+  if (!user) return null;
+
+  const { data: profile, error: selectError } = await supabaseClient
+    .from("user_profiles")
+    .select("username")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (selectError) {
+    console.error(selectError);
+    throw selectError;
+  }
+
+  if (profile?.username) return profile.username;
+
+  const username = inputUsername.trim();
+  if (!username) return null;
+
+  const { error: insertError } = await supabaseClient
+    .from("user_profiles")
+    .insert({ user_id: user.id, username });
+
+  if (insertError) {
+    if (insertError.code === "23505") throw new Error("USERNAME_TAKEN");
+    throw insertError;
+  }
+
+  return username;
+}
+
+async function initUsernameUI() {
+  const input = document.getElementById("public-username");
+  if (!input) return;
+
+  // reset
+  input.disabled = false;
+  input.title = "";
+
+  const { data: auth } = await supabaseClient.auth.getUser();
+  const user = auth?.user;
+  if (!user) return;
+
+  const { data: profile, error } = await supabaseClient
+    .from("user_profiles")
+    .select("username")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("initUsernameUI profile read error:", error);
+    return;
+  }
+
+  if (profile?.username) {
+    input.value = profile.username;
+    input.disabled = true;
+    input.title = "Pseudo définitif";
+  } else {
+    input.value = "";
+  }
+}
+
+function computeSessionPoints(payload) {
+  const exos = payload?.exercises || [];
+  let total = 0;
+
+  for (const ex of exos) {
+    const vals = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .map(v => Number(v))
+      .filter(v => Number.isFinite(v) && v > 0);
+
+    if (!vals.length) continue;
+    total += vals.reduce((a, b) => a + b, 0);
+  }
+
+  return Math.round(total);
+}
+
+function renderFeedItem(s, currentUserId) {
+  const d = new Date(s.session_date);
+  const dateLabel = isNaN(d.getTime()) ? s.session_date : d.toLocaleDateString();
+
+  const points = computeSessionPoints(s.payload);
+  const trophy = `<span style="margin-left:8px;color:#d4af37;font-weight:700;">🏆 ${points} pts</span>`;
+
+  const exList = (s.payload?.exercises || [])
+    .slice(0, 6)
+    .map(ex => {
+      const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+        .filter(v => v !== "" && v !== null && v !== undefined)
+        .join("/");
+
+      const unit = ex.mode === "hold" ? "s" : "reps";
+      return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)} ${unit}` : ""}</li>`;
+    })
+    .join("");
+
+  const canDelete = currentUserId && s.user_id === currentUserId;
+
+  return `
+    <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
+        <strong>${escapeHtml(s.username)}${trophy}</strong>
+        <span style="font-size:12px;color:#666;">${escapeHtml(dateLabel)}</span>
+      </div>
+
+      <div style="font-size:12px;color:#666;margin-top:4px;">
+        Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
+      </div>
+
+      <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
+        ${exList || "<li>(séance vide)</li>"}
+      </ul>
+
+      ${canDelete ? `
+        <button class="delete-session-btn" type="button" onclick="deleteSession(${s.id})">
+          Supprimer cette publication
+        </button>
+      ` : ""}
+    </div>
+  `;
+}
+
+function withTimeout(p, ms, code = "TIMEOUT") {
+  let t;
+  const timeout = new Promise((_, rej) => {
+    t = setTimeout(() => rej(new Error(code)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(t));
+}
+
+async function loadPublicFeed({ force = false } = {}) {
+  const container = document.getElementById("public-feed");
+  if (!container) return;
+
+  if (__feedInFlight && !force) return __feedInFlight;
+
+  const mySeq = ++__feedSeq;
+  container.innerHTML = `<div style="font-size:13px;color:#666;">Chargement du feed...</div>`;
+
+  const commit = (html) => {
+    if (mySeq !== __feedSeq) return;
+    container.innerHTML = html;
+  };
+
+  __feedInFlight = (async () => {
+    try {
+      // current user id (timeout)
+      let currentUserId = null;
+      try {
+        const { data, error } = await withTimeout(supabaseClient.auth.getUser(), 1200, "AUTH_TIMEOUT");
+        if (!error) currentUserId = data?.user?.id || null;
+      } catch (_) {
+        currentUserId = null;
+      }
+
+      // fetch feed (timeout)
+      const { data, error } = await withTimeout(
+        supabaseClient
+          .from("workout_sessions")
+          .select("id, user_id, created_at, username, session_date, payload")
+          .order("created_at", { ascending: false })
+          .limit(20),
+        2500,
+        "FEED_TIMEOUT"
+      );
+
+      if (error) {
+        commit(`<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        commit(`<div style="font-size:13px;color:#666;">Aucune séance publique pour l’instant.</div>`);
+        return;
+      }
+
+      commit(data.map(s => renderFeedItem(s, currentUserId)).join(""));
+    } catch (e) {
+      commit(`<div style="font-size:13px;color:#a00;">Feed indisponible (${escapeHtml(e?.message || String(e))})</div>`);
+    } finally {
+      if (mySeq === __feedSeq) __feedInFlight = null;
+    }
+  })();
+
+  return __feedInFlight;
+}
+
+async function deleteSession(sessionId) {
+  const { error } = await supabaseClient
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId);
+
+  if (error) {
+    uiInfo("Erreur suppression : " + error.message);
+    return;
+  }
+
+  uiInfo("Séance supprimée.");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+// evol publishLastSession does not do anything but register user's username now
+async function publishLastSession() {
+  uiInfo("");
+
+  const { data: authData } = await supabaseClient.auth.getUser();
+  const user = authData?.user;
+  if (!user) return uiInfo("Tu dois être connecté pour enregistrer ton pseudo.");
+
+  const inputUsername = document.getElementById("public-username")?.value || "";
+
+  let username;
+  try {
+    username = await getOrCreateUsername(inputUsername);
+  } catch (e) {
+    return uiInfo("Ce pseudo est déjà utilisé.");
+  }
+
+  if (!username) return uiInfo("Choisis un pseudo (une seule fois).");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+/* ---------- AUTH ---------- */
+
+async function login() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) return uiInfo("Erreur login : " + error.message);
+
+  uiInfo("Connecté !");
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+async function signup() {
+  uiInfo("");
+
+  const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
+  const password = document.getElementById("auth-pass")?.value?.trim();
+  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return uiInfo("Erreur inscription : " + error.message);
+
+  if (data?.session) uiInfo("Inscription OK + connecté.");
+  else uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
+
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+let isLoggingOut = false;
+
+async function logout() {
+  if (isLoggingOut) return;
+  isLoggingOut = true;
+
+  const btns = document.querySelectorAll('button[onclick="logout()"]');
+  btns.forEach(b => (b.disabled = true));
+
+  try {
+    uiInfo("Déconnexion...");
+
+    const signOutPromise = supabaseClient.auth.signOut();
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1200));
+    await Promise.race([signOutPromise, timeoutPromise]);
+
+    uiInfo("Déconnecté.");
+  } catch (e) {
+    if (e?.message === "TIMEOUT_SIGNOUT") {
+      uiInfo("Déconnecté (UI). Rechargement...");
+      window.location.reload();
+      return;
+    }
+    uiInfo("Erreur logout : " + (e?.message || e));
+  } finally {
+    clearPrivateUI();
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    isLoggingOut = false;
+    btns.forEach(b => (b.disabled = false));
+  }
+}
+
+function bindAuthListenerOnce() {
+  if (window.__authListenerBound) return;
+  window.__authListenerBound = true;
+
+  supabaseClient.auth.onAuthStateChange(() => {
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+  });
+}
+
+function bindVisibilityRefresh() {
+  if (window.__visibilityBound) return;
+  window.__visibilityBound = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadPublicFeed({ force: true });
+  });
+
+  window.addEventListener("focus", () => {
+    loadPublicFeed({ force: true });
+  });
+}
+
+/* ---------- AUTO SAVE / COUNTER TOOL LAUNCH ---------- */
+
+function bindAutoSaveButton() {
+  const btn = document.getElementById("autoSaveBtn");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const { data: authData } = await supabaseClient.auth.getUser();
+    const user = authData?.user;
+    if (!user) {
+      alert("Tu dois être connecté.");
+      return;
+    }
+
+    // username public (si tu veux le passer)
+    const username = user.user_metadata?.username || "";
+
+    const ctx = {
+      userId: user.id,
+      username,
+      exercise: "Tractions",
+      mode: "pullups",
+      sessionDate: new Date().toISOString().slice(0,10),
+    };
+
+    const encoded = encodeURIComponent(btoa(JSON.stringify(ctx)));
+    window.location.href = `/counter/launcher.html?ctx=${encoded}`;
+  });
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+
+window.addEventListener("DOMContentLoaded", async () => {
+  // init base UI
+  initStructuredLog();
+  loadPosts();
+  bindAutoSaveButton();
+
+  // restore dashboard state
+  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const savedSelect = localStorage.getItem("last-selected-exercise-select");
+  if (savedSelect && exerciseSelect) {
+    exerciseSelect.value = savedSelect;
+  }
+
+  // init dashboard (sets listeners + first render)
+  await initDashboard();
+
+  // auth + feed refresh
+  bindAuthListenerOnce();
+  bindVisibilityRefresh();
+
+  // username lock
+  await initUsernameUI();
+
+  // first refresh (groups feed + sessions + chart)
+  scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+});
+
+/* expose onclick handlers */
+window.addExerciseRow = addExerciseRow;
+window.removeExerciseRow = removeExerciseRow;
+window.saveStructuredSession = saveStructuredSession;
+window.deleteSessionHistory = deleteSessionHistory;
+
+window.publishLastSession = publishLastSession;
+
+window.login = login;
+window.signup = signup;
+window.logout = logout;
+
+window.showPost = showPost;
+window.savePost = savePost;
+window.resetPost = resetPost;
+
+window.loadPublicFeed = loadPublicFeed;
+window.deleteSession = deleteSession;
+</script>
+
+
+
+</body>
+</html>
