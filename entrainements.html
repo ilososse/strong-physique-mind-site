@@ -1701,7 +1701,7 @@ function renderFeedItem(s, currentUserId) {
 
     // ✅ NOUVEAU : affichage du lest
     const weightNum = Number(ex.weight || 0);
-    const weightLabel = weightNum > 0 ? ` (lest:${weightNum}kg)` : "";
+    const weightLabel = weightNum > 0 ? ` (+${weightNum}kg)` : "";
 
     return `
       <li>
