@@ -3782,7 +3782,7 @@ void main() {
     `,Object.keys(this.EXERCISES).forEach(o=>{const a=document.createElement("option");a.value=o,a.textContent=o,n.appendChild(a)}),n.value=((r=this.exercise)==null?void 0:r.name)||"Tractions",n.addEventListener("change",()=>{var a;this._setExercise(n.value);const o=(a=this.liveMenuContainer)==null?void 0:a.querySelector("select");o&&(o.value=n.value)}),e.appendChild(t),e.appendChild(n),(s=this.startButton)!=null&&s.parentElement?this.startButton.parentElement.insertBefore(e,this.startButton):this.startScreenOverlay.appendChild(e),this.exerciseSelect=n}_injectExerciseMenuLive(){var o;if(!this.renderDiv)return;const e=document.createElement("div");e.style.cssText=`
       position: absolute;
       top: 12px;
-      left: 67%;
+      left: 70%;
       transform: translateX(-50%);
       z-index: 999999;
       display: none; /* affiché à Start */
@@ -3797,7 +3797,7 @@ void main() {
       gap: 10px;
       align-items: center;
       justify-content: center;
-    `;const n=document.createElement("div");n.textContent="Exercice :",n.style.cssText="color: white; font-weight: 600; font-size: 13px;";const r=document.createElement("select");r.style.cssText=`
+    `;const n=document.createElement("div");n.textContent="Exercice:",n.style.cssText="color: white; font-weight: 600; font-size: 13px;";const r=document.createElement("select");r.style.cssText=`
       padding: 6px 8px;
       border-radius: 10px;
       border: 1px solid rgba(255,255,255,0.25);
