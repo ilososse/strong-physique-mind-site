@@ -957,6 +957,74 @@ async function fetchSessionsIntoCache({ force = false } = {}) {
   return __sessionsCache;
 }
 
+function mergeExercises(exercises) {
+  const map = new Map();
+
+  exercises.forEach(ex => {
+    const key = `${ex.name}__${ex.mode}__${ex.weight || 0}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ...ex,
+        s1: "", s2: "", s3: "", s4: "",
+        s5: "", s6: "", s7: "", s8: ""
+      });
+    }
+
+    const target = map.get(key);
+
+    const incoming = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .filter(v => v !== "" && v !== null && v !== undefined);
+
+    const existing = [target.s1, target.s2, target.s3, target.s4,
+                      target.s5, target.s6, target.s7, target.s8]
+      .filter(v => v !== "" && v !== null && v !== undefined);
+
+    const merged = [...existing, ...incoming].slice(0, 8);
+
+    [
+      target.s1, target.s2, target.s3, target.s4,
+      target.s5, target.s6, target.s7, target.s8
+    ] = [...merged, "", "", "", "", "", "", "", ""];
+  });
+
+  return Array.from(map.values());
+}
+
+function mergeSessionsByDayAndExercise(rows) {
+  const map = new Map();
+
+  rows.forEach(r => {
+    const key = `${r.user_id || "self"}__${r.date || r.session_date}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ...r,
+        payload: {
+          ...r.payload,
+          exercises: []
+        }
+      });
+    }
+
+    const bucket = map.get(key);
+
+    if (Array.isArray(r.payload?.exercises)) {
+      bucket.payload.exercises.push(...r.payload.exercises);
+    }
+  });
+
+  // 🔥 merge des exercices ici
+  return Array.from(map.values()).map(s => ({
+    ...s,
+    payload: {
+      ...s.payload,
+      exercises: mergeExercises(s.payload.exercises)
+    }
+  }));
+}
+
+
 async function getStructuredSessions() {
   return await fetchSessionsIntoCache({ force: false });
 }
@@ -1212,86 +1280,132 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
   const user = sessData?.session?.user || null;
 
   if (!user) {
-    container.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+    container.innerHTML =
+      "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
     return;
   }
 
-  const sessions = useCache ? (__sessionsCache || []) : await fetchSessionsIntoCache({ force: true });
+  const rawSessions = useCache
+    ? (__sessionsCache || [])
+    : await fetchSessionsIntoCache({ force: true });
 
-  if (!sessions.length) {
-    container.innerHTML = "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+  if (!rawSessions.length) {
+    container.innerHTML =
+      "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
     return;
   }
+
+  // 1) Grouper par DATE
+  const byDate = new Map();
+  rawSessions.forEach(s => {
+    if (!s.date) return;
+    if (!byDate.has(s.date)) byDate.set(s.date, []);
+    byDate.get(s.date).push(s);
+  });
 
   let html = "";
 
-  sessions.slice().reverse().forEach((s) => {
-    const d = new Date(s.date);
-    const dateStr = isNaN(d.getTime()) ? (s.date || "") : d.toLocaleDateString();
+  // 2) Une carte par JOUR
+  Array.from(byDate.entries())
+    .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+    .forEach(([date, daySessions]) => {
 
-    const durationStr =
-      s.duration !== undefined && s.duration !== null && String(s.duration).trim() !== ""
-        ? String(s.duration)
-        : "–";
+      // 3) Merge par (name + weight)
+      const exoMap = new Map();
 
-    html += `
-      <div class="session-card">
-        <div class="session-card-header">
-          <span class="label">Séance du ${escapeHtml(dateStr)}</span>
-          <span>Durée : ${escapeHtml(durationStr)} min</span>
-        </div>
+      daySessions.forEach(s => {
+        (s.exercises || []).forEach(ex => {
+          const weight = Number(ex.weight || 0);
+          const key = `${ex.name}__${weight}`;
 
-        <ul class="session-card-exos">
-          ${
-            (s.exercises || []).map(ex => {
-              const name = escapeHtml(ex.name || "Exercice");
-              const weightStr = ex.weight !== undefined && ex.weight !== null ? String(ex.weight) : "0";
-              const lest = (weightStr && weightStr !== "0") ? ` (lest : ${escapeHtml(weightStr)} kg)` : "";
-
-              const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-                .filter(v => v !== "" && v !== null && v !== undefined && String(v) !== "0")
-                .join(" / ");
-
-              const unit = ex.mode === "hold" ? "s" : "reps";
-              const seriesText = series ? ` – ${escapeHtml(series)} ${unit}` : "";
-              const ressenti = ex.ressenti ? ` – ${escapeHtml(ex.ressenti)}` : "";
-
-              return `<li>${name}${lest}${seriesText}${ressenti}</li>`;
-            }).join("")
+          if (!exoMap.has(key)) {
+            exoMap.set(key, {
+              name: ex.name,
+              mode: ex.mode,
+              weight,
+              values: [],
+              ressenti: []
+            });
           }
-        </ul>
 
-        <button class="delete-session-btn" type="button" onclick="deleteSessionHistory(${s.id})">
-          Supprimer cette séance
-        </button>
-      </div>
-    `;
-  });
+          const entry = exoMap.get(key);
+
+          const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+            .map(v => Number(v))
+            .filter(v => Number.isFinite(v) && v > 0);
+
+          entry.values.push(...nums);
+
+          if (ex.ressenti) entry.ressenti.push(ex.ressenti);
+        });
+      });
+
+      const d = new Date(date);
+      const dateStr = isNaN(d.getTime()) ? date : d.toLocaleDateString();
+
+      html += `
+        <div class="session-card">
+          <div class="session-card-header">
+            <span class="label">Séance du ${escapeHtml(dateStr)}</span>
+            <span>Durée : – min</span>
+          </div>
+
+          <ul class="session-card-exos">
+            ${Array.from(exoMap.values()).map(ex => {
+              const unit = ex.mode === "hold" ? "s" : "reps";
+              const series = ex.values.join(" / ");
+              const ressenti = ex.ressenti.length
+                ? ` – ${escapeHtml(ex.ressenti[ex.ressenti.length - 1])}`
+                : "";
+              const weightLabel = ex.weight > 0 ? ` (+${ex.weight}kg)` : "";
+
+              return `
+                <li>
+                  ${escapeHtml(ex.name)}${weightLabel}
+                  ${series ? ` – ${escapeHtml(series)} ${unit}` : ""}
+                  ${ressenti}
+                </li>
+              `;
+            }).join("")}
+          </ul>
+
+          <button
+            class="delete-session-btn"
+            type="button"
+            onclick="deleteSessionByDate('${date}')"
+          >
+            Supprimer la séance du jour
+          </button>
+        </div>
+      `;
+    });
 
   container.innerHTML = html;
 }
 
-async function deleteSessionHistory(id) {
+
+
+async function deleteSessionByDate(date) {
   const info = document.getElementById("session-save-info");
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
-
-  const ok = confirm("Supprimer cette séance ? (irréversible)");
-  if (!ok) return;
+  // FACULTATIF pour prevenir les suppressions par inadvertance
+  //const ok = confirm(`Supprimer TOUTES les séances du ${date} ?`);
+  //if (!ok) return;
 
   const { error } = await supabaseClient
     .from("workout_sessions")
     .delete()
-    .eq("id", id)
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("session_date", date);
 
   if (error) {
-    console.error("[delete] supabase error", error);
-    info && (info.textContent = "❌ Erreur suppression (voir console).");
+    console.error(error);
+    info.textContent = "❌ Erreur suppression";
     return;
   }
 
-  info && (info.textContent = "✅ Séance supprimée.");
+  info.textContent = "✅ Séance du jour supprimée";
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
@@ -1334,57 +1448,74 @@ function updateMetricOptions() {
     metricSelect.appendChild(o);
   });
 }
-
 async function buildChartData(exerciseName, metricKey) {
-  // ✅ cache: no network spam
   const sessions = await getStructuredSessions();
+
+  // 1) Grouper par DATE
+  const byDate = new Map();
+
+  sessions.forEach(s => {
+    if (!s.date) return;
+    if (!byDate.has(s.date)) byDate.set(s.date, []);
+    byDate.get(s.date).push(s);
+  });
+
   const labels = [];
   const data = [];
 
-  sessions.forEach(s => {
-    const exercises = s.exercises || [];
-    const matching = exercises.filter(ex => ex.name === exerciseName);
-    if (!matching.length) return;
+  // 2) Un point par JOUR
+  Array.from(byDate.entries())
+    .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+    .forEach(([date, daySessions]) => {
+      let values = [];
 
-    let values = [];
-    matching.forEach(ex => {
-      const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-        .map(v => Number(v))
-        .filter(v => Number.isFinite(v) && v > 0);
-      values = values.concat(nums);
+      daySessions.forEach(s => {
+        const exercises = s.exercises || [];
+        const matching = exercises.filter(ex =>
+          ex.name === exerciseName && Number(ex.weight || 0) === 0
+        );
+
+        matching.forEach(ex => {
+          const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+            .map(v => Number(v))
+            .filter(v => Number.isFinite(v) && v > 0);
+
+          values.push(...nums);
+        });
+      });
+
+      if (!values.length) return;
+
+      let pointValue = 0;
+
+      if (isHoldExercise(exerciseName)) {
+        const sum = values.reduce((a, b) => a + b, 0);
+        const avg = sum / values.length;
+        const max = Math.max(...values);
+        const count = values.length;
+
+        if (metricKey === "avg_hold") pointValue = avg;
+        else if (metricKey === "max_hold") pointValue = max;
+        else if (metricKey === "count_hold") pointValue = count;
+        else if (metricKey === "sum_hold") pointValue = sum;
+      } else {
+        const sum = values.reduce((a, b) => a + b, 0);
+        const count = values.length;
+        const avg = sum / count;
+        const max = Math.max(...values);
+
+        if (metricKey === "sum_reps") pointValue = sum;
+        else if (metricKey === "avg_reps") pointValue = avg;
+        else if (metricKey === "count_sets") pointValue = count;
+        else if (metricKey === "max_rep") pointValue = max;
+      }
+
+      const d = new Date(date);
+      const dateStr = isNaN(d.getTime()) ? date : d.toLocaleDateString();
+
+      labels.push(dateStr);
+      data.push(pointValue);
     });
-
-    if (!values.length) return;
-
-    let pointValue = 0;
-
-    if (isHoldExercise(exerciseName)) {
-      const sum = values.reduce((a, b) => a + b, 0);
-      const avg = sum / values.length;
-      const max = Math.max(...values);
-      const count = values.length;
-
-      if (metricKey === "avg_hold") pointValue = avg;
-      else if (metricKey === "max_hold") pointValue = max;
-      else if (metricKey === "count_hold") pointValue = count;
-      else if (metricKey === "sum_hold") pointValue = sum;
-    } else {
-      const sum = values.reduce((a, b) => a + b, 0);
-      const count = values.length;
-      const avg = sum / count;
-      const max = Math.max(...values);
-
-      if (metricKey === "sum_reps") pointValue = sum;
-      else if (metricKey === "avg_reps") pointValue = avg;
-      else if (metricKey === "count_sets") pointValue = count;
-      else if (metricKey === "max_rep") pointValue = max;
-    }
-
-    const d = new Date(s.date);
-    const dateStr = isNaN(d.getTime()) ? s.date : d.toLocaleDateString();
-    labels.push(dateStr);
-    data.push(pointValue);
-  });
 
   return { labels, data };
 }
@@ -1730,7 +1861,7 @@ function renderFeedItem(s, currentUserId) {
       </ul>
 
       ${canDelete ? `
-        <button class="delete-session-btn" type="button" onclick="deleteSession(${s.id})">
+        <button class="delete-session-btn" type="button" onclick="deleteSessionByDate('${s.session_date}')">
           Supprimer cette publication
         </button>
       ` : ""}
@@ -1792,7 +1923,15 @@ async function loadPublicFeed({ force = false } = {}) {
         return;
       }
 
-      commit(data.map(s => renderFeedItem(s, currentUserId)).join(""));
+      const merged = mergeSessionsByDayAndExercise(data);
+
+      commit(
+        merged
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .map(s => renderFeedItem(s, currentUserId))
+          .join("")
+      );
+
     } catch (e) {
       commit(`<div style="font-size:13px;color:#a00;">Feed indisponible (${escapeHtml(e?.message || String(e))})</div>`);
     } finally {
@@ -1990,7 +2129,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 window.addExerciseRow = addExerciseRow;
 window.removeExerciseRow = removeExerciseRow;
 window.saveStructuredSession = saveStructuredSession;
-window.deleteSessionHistory = deleteSessionHistory;
 
 window.publishLastSession = publishLastSession;
 
@@ -2003,7 +2141,7 @@ window.savePost = savePost;
 window.resetPost = resetPost;
 
 window.loadPublicFeed = loadPublicFeed;
-window.deleteSession = deleteSession;
+window.deleteSessionByDate = deleteSessionByDate;
 </script>
 
 
