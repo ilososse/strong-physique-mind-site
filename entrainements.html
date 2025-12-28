@@ -1691,16 +1691,26 @@ function renderFeedItem(s, currentUserId) {
   const trophy = `<span style="margin-left:8px;color:#d4af37;font-weight:700;">🏆 ${points} pts</span>`;
 
   const exList = (s.payload?.exercises || [])
-    .slice(0, 6)
-    .map(ex => {
-      const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-        .filter(v => v !== "" && v !== null && v !== undefined)
-        .join("/");
+  .slice(0, 6)
+  .map(ex => {
+    const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .filter(v => v !== "" && v !== null && v !== undefined)
+      .join("/");
 
-      const unit = ex.mode === "hold" ? "s" : "reps";
-      return `<li>${escapeHtml(ex.name || "Exo")} ${series ? `— ${escapeHtml(series)} ${unit}` : ""}</li>`;
-    })
-    .join("");
+    const unit = ex.mode === "hold" ? "s" : "reps";
+
+    // ✅ NOUVEAU : affichage du lest
+    const weightNum = Number(ex.weight || 0);
+    const weightLabel = weightNum > 0 ? ` +${weightNum}kg` : "";
+
+    return `
+      <li>
+        ${escapeHtml(ex.name || "Exo")}${weightLabel}
+        ${series ? ` — ${escapeHtml(series)} ${unit}` : ""}
+      </li>
+    `;
+  })
+  .join("");
 
   const canDelete = currentUserId && s.user_id === currentUserId;
 
