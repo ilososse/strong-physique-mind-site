@@ -1822,7 +1822,7 @@ function renderFeedItem(s, currentUserId) {
   const trophy = `<span style="margin-left:8px;color:#d4af37;font-weight:700;">🏆 ${points} pts</span>`;
 
   const exList = (s.payload?.exercises || [])
-  .slice(0, 6)
+  .slice(0, 15)
   .map(ex => {
     const series = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
       .filter(v => v !== "" && v !== null && v !== undefined)
