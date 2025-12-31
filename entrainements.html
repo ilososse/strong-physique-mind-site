@@ -597,8 +597,8 @@
     <section class="hero">
       <h1>Programmes & journal de progression</h1>
       <p>
-        Cette page présente un outil clé pour qui crée la différence en terme de motivation : le suivi automatisé de chaque séance que tu réalises.
-        En tant qu'athlète, j'ai longuement rêvé d'avoir un tel outil à ma disposition : désormais, il est là, le hack, à toi de jouer !
+        Cette page présente un outil clé pour qui crée la différence en terme de motivation : <strong> le suivi automatisé de chaque séance que tu réalises</strong>. <br>
+        En tant qu'athlète, j'ai longuement rêvé d'avoir un tel outil à ma disposition : désormais, il est là, le hack, à toi de jouer ! <br>
         En bas de cette page, je t'ai aussi proposé trois grandes classes de niveaux – <strong>débutant</strong>, <strong>intermédiaire</strong>
         et <strong>avancé / pro</strong> – avec des exemples de structures d’entraînement. Il y a évidemment une infinité de façons de combiner les exercices. Ma proposition est un point de départ. Sois libre de l'adapter à ton niveau, en intégrant des exercices à difficulté variable !
       </p>
@@ -606,7 +606,7 @@
         L’idée est de :
       </p>
       <ul style="margin-top: 4px; padding-left: 18px; font-size: 14px;">
-        <li>si besoin choisir un niveau qui te parle (ou en tester plusieurs),</li>
+        <li>si besoin, choisir en bas de cette page un niveau qui te parle (ou en tester plusieurs),</li>
         <li>exécuter les exercices selon ta capacité actuelle,</li>
         <li>documenter ta progression et tes ressentis au fil des séances avec le super outil que je te propose en bas,</li>
         <li>apprécier au fil du temps ton progrès à travers les courbes réalisées automatiquement à partir de tes séances.</li>
@@ -615,7 +615,7 @@
   <a href="echauffement.html" target="_blank" style="text-decoration:none; color:#111; font-weight:500;">
     mon article
   </a> 
-  (en cours de rédaction) sur l'échauffement présentant un exemple d'exercices préparant à l'effort physique.
+  sur l'échauffement présentant un exemple d'exercices préparant à l'effort physique.
 </li>
 </section>
 
@@ -745,7 +745,7 @@
 
     <!-- ANNEXE : PROGRAMMES -->
     <section class="workouts">
-      <h2>[Annexe] Programmes par niveau</h2>
+      <h2>ℹ️ Programmes par niveau</h2>
       <p>
         Voici une base de travail. Tu peux t’en servir comme référence, comme point de départ,
         ou comme cadre pour organiser tes propres séances.
@@ -825,6 +825,15 @@ const supabaseClient = window.supabaseClient;
 if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
   console.error("Supabase client invalide", supabaseClient);
 }
+
+function userIdToNumber1to1000(userId) {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+  }
+  return (hash % 1000) + 1; // 1 → 1000
+}
+
 
 function escapeHtml(str) {
   return String(str ?? "")
@@ -1181,7 +1190,6 @@ async function saveStructuredSession() {
   const durationInput = document.getElementById("session-duration");
   const rows = document.querySelectorAll("#session-rows tr");
   const info = document.getElementById("session-save-info");
-
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
 
@@ -1241,10 +1249,13 @@ async function saveStructuredSession() {
   }
 
   // Fallback: si vraiment aucun pseudo, mets un libellé neutre (PAS l'email)
+  const userNumber = userIdToNumber1to1000(user.id);
+
   const safeDisplayUsername =
     publicUsername ||
     (user.user_metadata?.username || user.user_metadata?.name || "").toString().trim() ||
-    "Utilisateur";
+    `Utilisateur${userNumber}`;
+
 
   const row = {
     user_id: user.id,
