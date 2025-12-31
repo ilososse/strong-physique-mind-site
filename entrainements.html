@@ -1908,7 +1908,7 @@ async function loadPublicFeed({ force = false } = {}) {
           .from("workout_sessions")
           .select("id, user_id, created_at, username, session_date, payload")
           .order("created_at", { ascending: false })
-          .limit(20),
+          .limit(200),
         2500,
         "FEED_TIMEOUT"
       );
