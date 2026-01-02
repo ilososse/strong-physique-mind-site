@@ -947,7 +947,7 @@ async function deleteSessionByDate(date) {
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
   // FACULTATIF pour prevenir les suppressions par inadvertance
-  //const ok = confirm(`Supprimer TOUTES les séances du ${date} ?`);
+  const ok = confirm(`Supprimer TOUTES les séances du ${date} ?`);
   //if (!ok) return;
 
   const { error } = await supabaseClient
