@@ -1327,14 +1327,20 @@ async function initUsernameUI() {
   const input = document.getElementById("public-username");
   if (!input) return;
 
-  // reset
-  input.disabled = false;
-  input.title = "";
+  // état par défaut : verrouillé
+  input.disabled = true;
+  input.value = "";
+  input.title = "Connecte-toi pour définir ton pseudo";
 
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
-  if (!user) return;
 
+  // ❌ pas connecté → on laisse désactivé
+  if (!user) {
+    return;
+  }
+
+  // ✅ connecté → on vérifie le profil
   const { data: profile, error } = await supabaseClient
     .from("user_profiles")
     .select("username")
@@ -1346,12 +1352,17 @@ async function initUsernameUI() {
     return;
   }
 
+  // 🔒 pseudo déjà défini
   if (profile?.username) {
     input.value = profile.username;
     input.disabled = true;
     input.title = "Pseudo définitif";
-  } else {
-    input.value = "";
+  } 
+  // ✅ connecté mais pas encore de pseudo
+  else {
+    input.disabled = false;
+    input.placeholder = "ex: cali_ambition";
+    input.title = "Choisis ton pseudo (une seule fois)";
   }
 }
 
