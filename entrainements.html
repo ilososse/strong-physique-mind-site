@@ -541,33 +541,33 @@ async function getStructuredSessions() {
 }
 
 function clearPrivateUI() {
-  // history
   const hist = document.getElementById("sessions-history");
   if (hist) hist.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
 
-  // save info
   const info = document.getElementById("session-save-info");
   if (info) info.textContent = "";
 
-  // username input
   const input = document.getElementById("public-username");
   if (input) {
-    input.disabled = false;
-    input.title = "";
+    input.disabled = true;
     input.value = "";
+    input.placeholder = "Connexion requise";
+    input.title = "Connexion requise";
   }
 
-  // dashboard
   const dashInfo = document.getElementById("dashboard-info");
   if (dashInfo) dashInfo.textContent = "Connecte-toi pour voir ton tableau de bord.";
 
-  if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
+  if (exerciseChart) {
+    exerciseChart.destroy();
+    exerciseChart = null;
+  }
 
-  // reset cache
   __sessionsCache = [];
   __sessionsCacheUserId = null;
   __sessionsCacheAt = Date.now();
 }
+
 
 function updateAuthUI(user) {
   const emailInput = document.getElementById("auth-email");
