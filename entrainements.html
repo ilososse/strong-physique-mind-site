@@ -16,7 +16,6 @@
   <title>Programmes & progression – Calisthénie</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/entrainements.css">
-
   <link rel="icon" type="image/png" href="images/favicon.png">
 
 </head>
@@ -570,6 +569,49 @@ function clearPrivateUI() {
   __sessionsCacheAt = Date.now();
 }
 
+function updateAuthUI(user) {
+  const emailInput = document.getElementById("auth-email");
+  const passInput = document.getElementById("auth-pass");
+
+  const signupBtn = document.querySelector('button[onclick="signup();"]');
+  const loginBtn  = document.querySelector('button[onclick="login();"]');
+
+  if (user) {
+    // 🔒 LOCK
+    if (emailInput) {
+      emailInput.disabled = true;
+      emailInput.value = user.email || "";
+      emailInput.title = "Connecté";
+    }
+
+    if (passInput) {
+      passInput.disabled = true;
+      passInput.value = "••••••••";
+      passInput.title = "Mot de passe masqué";
+    }
+
+    signupBtn && (signupBtn.disabled = true);
+    loginBtn && (loginBtn.disabled = true);
+  } else {
+    // 🔓 UNLOCK
+    if (emailInput) {
+      emailInput.disabled = false;
+      emailInput.value = "";
+      emailInput.title = "";
+    }
+
+    if (passInput) {
+      passInput.disabled = false;
+      passInput.value = "";
+      passInput.title = "";
+    }
+
+    signupBtn && (signupBtn.disabled = false);
+    loginBtn && (loginBtn.disabled = false);
+  }
+}
+
+
 const scheduleUIRefresh = (() => {
   const run = async ({ forceSessions = false, forceFeed = false } = {}) => {
     if (__uiBusy) return;
@@ -584,6 +626,7 @@ const scheduleUIRefresh = (() => {
       // user session
       const { data: sessData } = await supabaseClient.auth.getSession();
       const user = sessData?.session?.user || null;
+      updateAuthUI(user);
 
       if (!user) {
         clearPrivateUI();

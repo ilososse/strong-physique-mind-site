@@ -495,3 +495,14 @@
   background: #ffcccc;
 }
 
+input:disabled {
+  background: #f0f0f0;
+  color: #666;
+  cursor: not-allowed;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+
