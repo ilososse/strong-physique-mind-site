@@ -1,0 +1,497 @@
+
+    body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #f7f7f7;
+        color: #111;
+    }
+
+    header {
+        padding: 16px 24px;
+        border-bottom: 1px solid #ddd;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    #public-feed{
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;           /* scroll horizontal */
+    padding-bottom: 8px;        /* évite que la scrollbar cache le bas */
+    scroll-snap-type: x mandatory; /* snap sympa */
+    -webkit-overflow-scrolling: touch; /* inertie iOS */
+    }
+
+    #public-feed > div{
+        font-size: 12px;
+        flex: 0 0 320px;            /* largeur fixe de “carte” */
+        scroll-snap-align: start;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        font-size: 16px;
+        color: #111;
+        text-decoration: none; /* retire le soulignement */
+    }
+
+    .logo img {
+            height: 36px;
+            width: auto;
+            display: block;
+    }
+
+    .logo:hover {
+            opacity: 0.85; /* petit effet subtil sexy */
+    }
+
+
+
+    nav a {
+        margin-left: 16px;
+        text-decoration: none;
+        color: #333;
+        font-size: 14px;
+    }
+
+    nav a:hover {
+        text-decoration: underline;
+    }
+
+    main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+    }
+
+    .hero {
+        margin-bottom: 28px;
+        padding: 20px 18px;
+        border-radius: 16px;
+        background: #ffffff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .hero h1 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 24px;
+    }
+
+    .hero p {
+        margin: 0 0 8px;
+        line-height: 1.5;
+        font-size: 14px;
+    }
+
+    /* PROGRAMMES */
+
+    .workouts {
+      margin-bottom: 32px;
+    }
+
+    .workouts h2 {
+      margin-bottom: 8px;
+      font-size: 20px;
+    }
+
+    .workouts p {
+      margin-bottom: 16px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .workout-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .workout-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .workout-card h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .workout-card ul {
+      padding-left: 20px;
+      margin: 8px 0;
+      font-size: 14px;
+    }
+
+    .workout-card p {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .workout-level {
+      display: inline-block;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    /* JOURNAL STRUCTURÉ */
+
+    .structured-log {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .structured-log-header {
+      margin-bottom: 12px;
+    }
+
+    .session-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .session-meta label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-meta input,
+    .session-meta select {
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 13px;
+    }
+
+    .session-table-wrapper {
+      overflow-x: auto;
+      margin-bottom: 10px;
+    }
+
+    table.session-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .session-table th,
+    .session-table td {
+      border: 1px solid #e2e2e2;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .session-table th {
+      background: #fafafa;
+      font-weight: 500;
+    }
+
+    .session-table input[type="text"],
+    .session-table input[type="number"] {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-secondary {
+      background: #eee;
+    }
+
+    .btn-primary {
+      background: #000;
+      color: #fff;
+    }
+    .btn-auto-save{
+      display:flex; gap:10px; align-items:center;
+      padding:4px 8px;
+      border-radius:12px;
+      border:1px solid rgba(0, 0, 0, 0);
+      background: linear-gradient(135deg, #111827, #000000);
+      color:white;
+      font-weight:500;
+      cursor:pointer;
+    }
+    .btn-auto-save:hover{ transform: translateY(-1px); }
+    .badge-new{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:800;
+      background:#ff2d2d;
+      color:white;
+      letter-spacing:0.5px;
+    }
+
+    .remove-row-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .info {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #555;
+    }
+
+    .dashboard {
+      margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .dashboard-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      align-items: flex-end;
+    }
+    .dashboard-controls .control {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .exercise-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .exercise-row select,
+    .exercise-row input {
+      height: 32px;
+    }
+
+
+    .dashboard-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dashboard-controls select,
+    .dashboard-controls input{
+      height:34px;
+      padding:6px 10px;
+      font-size:13px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      background:#fff;
+      box-sizing:border-box;
+      min-width:180px;
+    }
+
+    #exercise-chart {
+      max-width: 100%;
+      margin-top: 10px;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 260px;       /* hauteur fixe du graphique */
+      margin-top: 10px;
+    }
+
+    #exercise-chart {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+#sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sessions-history > .session-card {
+  flex: 0 0 400px;
+  scroll-snap-align: start;
+}
+
+#sessions-history {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+#sessions-history > .session-card {
+  flex: 0 0 400px;
+  scroll-snap-align: start;
+}
+.session-card {
+
+  font-size: 12px;
+  line-height: 1.5;
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+
+    .session-card-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .session-card-header span.label {
+      font-weight: 600;
+    }
+
+    .session-card-exos {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    /* JOURNAL LIBRE */
+
+    .nav-posts {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-bottom: 16px;
+      margin-top: 10px;
+    }
+
+    .nav-posts button {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .nav-posts button.active {
+      border-color: #000;
+      font-weight: 600;
+    }
+
+    .post {
+      display: none;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      margin-bottom: 30px;
+    }
+
+    .post h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .post textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .post-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .post-actions button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-save {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-reset {
+      background: #eee;
+    }
+
+    .delete-session-btn {
+  margin-top: 8px;
+  background: #ffdddd;
+  color: #900;
+  border: 1px solid #cc0000;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.delete-session-btn:hover {
+  background: #ffcccc;
+}
+
