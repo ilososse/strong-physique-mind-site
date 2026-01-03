@@ -170,10 +170,21 @@ body {
       .layout-two-col {
         grid-template-columns: 1fr;
       }
-      .layout-two-col.narrow-media{
-        grid-template-columns: 1fr;
-      }
+      .layout-two-col.narrow-media {
+          grid-template-columns: 1fr;
+        }
+
+        /* TEXTE d'abord */
+        .layout-two-col.narrow-media section {
+          order: 1;
+        }
+
+        /* IMAGE ensuite */
+        .layout-two-col.narrow-media aside {
+          order: 2;
+        }
     }
+
 
     .card {
       background: #ffffff;
