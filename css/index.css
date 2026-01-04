@@ -283,6 +283,7 @@ body {
     .hero-tutorial {
       margin: 0 auto 32px auto; /* centre horizontalement */
       max-width: 1100px;        /* largeur maîtrisée */
+      margin-bottom: 10px;
       background: #ffffff;
       border-radius: 16px;
       padding: 24px 22px;

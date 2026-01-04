@@ -1,0 +1,32 @@
+    /* ===== VIDEOS ===== */
+    .video-section {
+      margin-top: 32px;
+    }
+
+    /* Bloc vidéo tutoriel */
+    .video-block {
+      max-width: 560px;        /* 👈 largeur idéale (YouTube-like) */
+      margin: 24px auto 32px; /* centrée + respiration */
+    }
+
+    /* Vidéo elle-même */
+    .video-block video {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      background: #000;       /* évite flash blanc */
+    }
+
+    .video-caption {
+      margin-top: 8px;
+      font-size: 14px;
+      font-style: italic;
+      color: #0066cc;
+      line-height: 1.4;
+
+    }
+
+    /* Espace entre deux cards successifs */
+    .card + .card {
+      margin-top: 10px;
+    }
