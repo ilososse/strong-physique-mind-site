@@ -21,12 +21,23 @@
       margin-top: 8px;
       font-size: 14px;
       font-style: italic;
-      color: #0066cc;
+      color: #666;
       line-height: 1.4;
+      text-align: center  ;
 
     }
 
     /* Espace entre deux cards successifs */
     .card + .card {
       margin-top: 10px;
+    }
+
+        /* Légende pour l'image de connexion */
+    .image-caption {
+      margin-top: 8px;
+      font-size: 14px;
+      font-style: italic;
+      color: #666;
+      line-height: 1.4;
+      text-align: center;
     }
