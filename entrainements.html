@@ -92,12 +92,13 @@
       Enregistrer mon pseudo
     </button>
 
- <a href="counter/launcher.html" class="btn-live" id="liveBtn">
+<button class="btn-live" id="liveBtn" type="button">
   <span class="live-dot"></span>
   <strong>LIVE</strong>
-  <span class="v-sep" aria-hidden="true"></span>
+  <span class="v-sep"></span>
   Enregistrer une séance auto
-</a>
+</button>
+
 
 
   </div>
@@ -116,7 +117,7 @@
 </section>
 
     <!-- INTRO -->
-    <section class="hero">
+    <section class="structured-log">
       <h1>Programmes & journal de progression</h1>
       <p>
         Cette page présente un outil clé pour qui crée la différence en terme de motivation : <strong> le suivi automatisé de chaque séance que tu réalises</strong>. <br>
@@ -1652,33 +1653,37 @@ function bindVisibilityRefresh() {
 
 /* ---------- AUTO SAVE / COUNTER TOOL LAUNCH ---------- */
 
-function bindAutoSaveButton() {
-  const btn = document.getElementById("autoSaveBtn");
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("liveBtn");
   if (!btn) return;
 
-  btn.addEventListener("click", async () => {
+  btn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
     const { data: authData } = await supabaseClient.auth.getUser();
     const user = authData?.user;
+
     if (!user) {
-      alert("Tu dois être connecté.");
+      alert("Tu dois être connecté pour utiliser l’outil LIVE.");
       return;
     }
 
-    // username public (si tu veux le passer)
-    const username = user.user_metadata?.username || "";
-
     const ctx = {
       userId: user.id,
-      username,
+      username: user.user_metadata?.username || "",
       exercise: "Tractions",
       mode: "pullups",
-      sessionDate: new Date().toISOString().slice(0,10),
+      sessionDate: new Date().toISOString().slice(0, 10),
     };
 
-    const encoded = encodeURIComponent(btoa(JSON.stringify(ctx)));
+    const encoded = encodeURIComponent(
+      btoa(JSON.stringify(ctx))
+    );
+
     window.location.href = `/counter/launcher.html?ctx=${encoded}`;
   });
-}
+});
+
 
 /* =========================================================
    BOOT
@@ -1728,24 +1733,6 @@ window.resetPost = resetPost;
 
 window.loadPublicFeed = loadPublicFeed;
 window.deleteSessionByDate = deleteSessionByDate;
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const liveBtn = document.getElementById("liveBtn");
-    if (!liveBtn || !window.supabase) return;
-
-    liveBtn.addEventListener("click", async (e) => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-
-      if (!user) {
-        e.preventDefault(); // ⛔ bloque la navigation
-        alert("Tu dois être connecté pour enregistrer une séance.");
-        return;
-      }
-
-      // ✅ connecté → on laisse le lien faire son taf
-    });
-  });
 </script>
 
 </body>
