@@ -17,23 +17,38 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="images/favicon.png">
 </head>
+<script src="js/header.js"></script>
 
 <body>
 
   <!-- ================= HEADER ================= -->
-  <header>
-    <a href="/" class="logo">
-      <img src="images/logo.png" alt="Logo Calisthénie & ambition">
-      <span>Calisthénie & ambition</span>
-    </a>
+  <header class="site-header">
+  <a href="index.html" class="logo">
+    <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+    <span>Calisthénie & ambition</span>
+  </a>
 
-    <nav>
-      <a href="/">🌐 Accueil</a>
-      <a href="entrainements.html">📊 Programmes & progression</a>
-      <a href="tutoriel.html">🎥 Tutoriel outil</a>
-      <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
-    </nav>
-  </header>
+  <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
+  <nav class="main-nav">
+    <a href="index.html">🌐 Accueil</a>
+    <a href="entrainements.html">📊 Programmes & progression</a>
+    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+  </nav>
+
+  <!-- Bouton mobile -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+    ☰
+  </button>
+
+  <!-- Navigation mobile -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Accueil</a>
+    <a href="entrainements.html">Programmes & progression</a>
+    <a href="tutoriel.html">Tutoriel outil</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+</header>
 
   <!-- ================= MAIN ================= -->
   <main>

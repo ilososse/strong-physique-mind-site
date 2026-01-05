@@ -10,22 +10,42 @@
   <link rel="stylesheet" href="css/index.css">
 </head>
 
+<script>
+function toggleMenu() {
+  document.getElementById("mobileNav").classList.toggle("open");
+}
+</script>
+
 <body>
+<header class="site-header">
+  <a href="index.html" class="logo">
+    <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+    <span>Calisthénie & ambition</span>
+  </a>
 
-  <header>
-    <a href="/" class="logo">
-  <img src="images/logo.png" alt="Logo Calisthénie & ambition">
-  <span>Calisthénie & ambition</span>
-</a>
+  <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
+  <nav class="main-nav">
+    <a href="index.html">🌐 Accueil</a>
+    <a href="entrainements.html">📊 Programmes & progression</a>
+    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+  </nav>
 
-    <nav>
-      <a href="/">🌐 Accueil</a>
-      <a href="entrainements.html">📊 Programmes & progression</a>
-      <a href="tutoriel.html">🎥 Tutoriel outil</a>
+  <!-- Bouton mobile -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+    ☰
+  </button>
 
-      <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
-    </nav>
-  </header>
+  <!-- Navigation mobile -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="index.html">Accueil</a>
+    <a href="entrainements.html">Programmes & progression</a>
+    <a href="tutoriel.html">Tutoriel outil</a>
+    <a href="leaderboard.html">Leaderboard</a>
+  </nav>
+</header>
+
+
 
   <main>
     <div class="layout-two-col">
