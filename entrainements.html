@@ -91,12 +91,14 @@
     <button class="btn btn-primary" type="button" onclick="saveUsername()">
       Enregistrer mon pseudo
     </button>
-      <a href="counter/launcher.html" class="btn-live">
+
+ <a href="counter/launcher.html" class="btn-live" id="liveBtn">
   <span class="live-dot"></span>
   <strong>LIVE</strong>
   <span class="v-sep" aria-hidden="true"></span>
   Enregistrer une séance auto
 </a>
+
 
   </div>
 
@@ -1726,6 +1728,24 @@ window.resetPost = resetPost;
 
 window.loadPublicFeed = loadPublicFeed;
 window.deleteSessionByDate = deleteSessionByDate;
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const liveBtn = document.getElementById("liveBtn");
+    if (!liveBtn || !window.supabase) return;
+
+    liveBtn.addEventListener("click", async (e) => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      if (!user) {
+        e.preventDefault(); // ⛔ bloque la navigation
+        alert("Tu dois être connecté pour enregistrer une séance.");
+        return;
+      }
+
+      // ✅ connecté → on laisse le lien faire son taf
+    });
+  });
 </script>
 
 </body>
