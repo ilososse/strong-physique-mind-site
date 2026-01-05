@@ -119,6 +119,10 @@
 
     .workouts {
       margin-bottom: 32px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     }
 
     .workouts h2 {
@@ -128,14 +132,14 @@
 
     .workouts p {
       margin-bottom: 16px;
-      color: #555;
+      color: #555555f1;
       font-size: 14px;
     }
 
     .workout-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
+      gap: 16px;  
     }
 
     .workout-card {
@@ -143,6 +147,7 @@
       border-radius: 12px;
       padding: 16px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      border: 1px solid #000; /* bordure noire */
     }
 
     .workout-card h3 {
@@ -167,7 +172,9 @@
       font-size: 11px;
       padding: 3px 8px;
       border-radius: 999px;
-      border: 1px solid #ddd;
+      background: #185ef8; /* bleu foncé, moins foncé que #0b63ff */
+      color: #ffffff; /* texte blanc pour contraste */
+      font-weight: 700; /* texte en gras */
       margin-bottom: 8px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
