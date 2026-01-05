@@ -1653,7 +1653,6 @@ function bindVisibilityRefresh() {
 
 /* ---------- AUTO SAVE / COUNTER TOOL LAUNCH ---------- */
 function bindAutoSaveButton() {
-document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("liveBtn");
   if (!btn) return;
 
@@ -1682,7 +1681,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.location.href = `/counter/launcher.html?ctx=${encoded}`;
   });
-});
 }
 
 /* =========================================================
