@@ -597,6 +597,21 @@ button:disabled {
   overflow: hidden;
 }
 
+/* vertical separator inside live button */
+.btn-live .v-sep {
+  display: inline-block;
+  width: 2px;
+  height: 24px; /* long vertical line */
+  background: rgba(255,255,255,0.9);
+  margin: 0 10px;
+  border-radius: 2px;
+  align-self: center;
+}
+
+@media (max-width: 700px) {
+  .btn-live .v-sep { height: 18px; margin: 0 8px; }
+}
+
 /* Effet glow */
 .btn-live::before {
   content: "";
@@ -636,5 +651,32 @@ button:disabled {
   }
   100% {
     opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .btn-live {
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+
+    box-shadow:
+      0 4px 12px rgba(255, 0, 0, 0.35);
+  }
+
+  .btn-live span {
+    display: block;
+    line-height: 1.25;
+  }
+
+  .btn-live .live-badge {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 10px;
   }
 }
