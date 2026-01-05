@@ -28,7 +28,6 @@
     <priority>0.8</priority>
   </url>
 
-  <!-- FUTURS ARTICLES (garde-les commentés tant que non publiés) -->
   <url>
     <loc>https://calisthenicsambition.com/consistance-perseverence.html</loc>
     <lastmod>2025-01-15</lastmod>
@@ -40,12 +39,18 @@
     <lastmod>2025-01-15</lastmod>
     <priority>0.6</priority>
   </url>
-<!--
+
   <url>
-    <loc>https://calisthenicsambition.com/progression-one-arm-handstand.html</loc>
+    <loc>https://calisthenicsambition.com/tutoriel.html</loc>
     <lastmod>2025-01-15</lastmod>
     <priority>0.6</priority>
   </url>
-  -->
+
+    <url>
+    <loc>https://calisthenicsambition.com/launcher.html</loc>
+    <lastmod>2025-01-15</lastmod>
+    <priority>0.6</priority>
+  </url>
+  
 
 </urlset>
