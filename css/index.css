@@ -23,25 +23,48 @@ body {
     }
 
     .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    font-size: 16px;
-    color: #111;
-    text-decoration: none; /* retire le soulignement */
-  }
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      font-size: 18px;
+      color: #111;
+      text-decoration: none;
+      transition: transform .18s ease, filter .18s ease;
+    }
 
     .logo img {
-    height: 36px;
-    width: auto;
-    display: block;
-  }
+      height: 42px;
+      width: auto;
+      display: block;
+      border-radius: 8px;
+      transition: transform .18s ease, filter .18s ease;
+      filter: drop-shadow(0 6px 18px rgba(255,0,0,0.12));
+    }
 
     .logo:hover {
-    opacity: 0.85; /* petit effet subtil sexy */
-  }
+      opacity: 0.95;
+      transform: translateY(-2px);
+    }
+
+    .logo span {
+      display: inline-block;
+      font-weight: 800;
+      font-size: 18px;
+      background: #111111;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 1px 0 rgba(0,0,0,0.06);
+      padding-left: 4px;
+      transition: transform .18s ease, text-shadow .18s ease;
+    }
+
+    .logo:hover span {
+      transform: translateY(-2px) scale(1.02);
+      text-shadow: 0 6px 22px rgba(0,0,0,0.22);
+    }
 
 
     nav a {
@@ -76,7 +99,7 @@ body {
     .hero h1 {
       margin-top: 0;
       margin-bottom: 12px;
-      font-size: 26px;
+      font-size: 24px;
     }
 
     .hero p {
@@ -318,19 +341,7 @@ body {
   justify-content: space-between;
 }
 
-/* LOGO */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  text-decoration: none;
-  color: #111;
-}
-
-.logo img {
-  height: 36px;
-}
+/* LOGO: styles defined earlier (consolidated) */
 
 /* NAV DESKTOP */
 .desktop-nav {
