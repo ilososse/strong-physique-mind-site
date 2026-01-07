@@ -31,31 +31,23 @@
         scroll-snap-align: start;
     }
 
+    /* LOGO */
     .logo {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      font-size: 18px;
+      font-weight: 700;
+      text-decoration: none;
       color: #111;
-      text-decoration: none; /* retire le soulignement */
-      transition: transform .18s ease, filter .18s ease;
     }
 
     .logo img {
-          height: 42px;
-          width: auto;
-          display: block;
-          border-radius: 8px;
-          transition: transform .18s ease, filter .18s ease;
-          filter: drop-shadow(0 6px 18px rgba(255,0,0,0.12));
+      height: 42px;
     }
-
-    .logo:hover {
-          opacity: 0.95;
-          transform: translateY(-2px);
-    }
+        .logo:hover {
+              opacity: 0.95;
+              transform: translateY(-2px);
+        }
 
         /* Emphase du texte de marque à droite du logo (dégradé blanc → gris → noir) */
         .logo span {
@@ -702,19 +694,7 @@ button:disabled {
   justify-content: space-between;
 }
 
-/* LOGO */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  text-decoration: none;
-  color: #111;
-}
 
-.logo img {
-  height: 36px;
-}
 
 /* NAV DESKTOP */
 .desktop-nav {
@@ -765,10 +745,11 @@ button:disabled {
 
 /* ===== HEADER MOBILE FIX ===== */
 
+/* HEADER GLOBAL */
 .site-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  background: #ffffff;
+  border-bottom: 1px solid #ddd;
+  padding: 14px 20px;
 }
 
 /* MOBILE */

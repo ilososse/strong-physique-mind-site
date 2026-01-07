@@ -741,7 +741,12 @@ function createExerciseRow(data) {
 function addExerciseRow(prefillData) {
   const tbody = document.getElementById("session-rows");
   if (!tbody) return;
-  tbody.appendChild(createExerciseRow(prefillData));
+  const newRow = createExerciseRow(prefillData);
+  tbody.appendChild(newRow);
+  // retire le focus actif (évite la barre/bulle "écrire quelque chose")
+  setTimeout(() => {
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+  }, 0);
 }
 
 function removeExerciseRow(btn) {
