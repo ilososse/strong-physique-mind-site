@@ -6,16 +6,57 @@
   <link rel="canonical" href="https://calisthenicsambition.com/echauffement.html">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/index.css">
+
   <link rel="stylesheet" href="css/posts.css">
+
   <link rel="icon" type="image/png" href="images/favicon.png">
+  <script src="js/header.js"></script>
 
 </head>
 
+
 <body>
 
-  <header>
-    <a href="/">← Retour à l’accueil</a>
-  </header>
+<header class="site-header">
+  <a href="/" class="logo">
+    <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+    <span>Calisthénie & ambition</span>
+  </a>
+
+
+  <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
+   <!-- 🔗 BLOC DROIT : NAV + LANG -->
+  <div class="header-right">
+    <nav class="main-nav">
+      <a href="/">🌐 Accueil</a>
+      <a href="entrainements.html">📊 Programmes & progression</a>
+      <a href="tutoriel.html">🎥 Tutoriel outil</a>
+      <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+    </nav>
+
+    <div class="lang-switch">
+      <a href="echauffement.html" title="Français" class="lang-flag">FR</a>
+      <a href="warm-up.html" title="English" class="lang-flag">GB</a>
+    </div>
+  </div>
+
+
+  <!-- Bouton mobile -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+    ☰
+  </button>
+
+  <!-- Navigation mobile -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="/">🌐 Accueil</a>
+    <a href="entrainements.html">📊 Programmes & progression</a>
+    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="leaderboard.html">✨ Leaderboard ✨</a>
+  </nav>
+
+
+</header>
 
   <main>
 

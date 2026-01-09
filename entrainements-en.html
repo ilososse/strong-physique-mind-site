@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
   
 <head>
 
@@ -12,22 +12,20 @@
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   </script>
   <meta charset="UTF-8" />
-  <title>Programmes & progression – Calisthénie</title>
-  <link rel="canonical" href="https://calisthenicsambition.com/entrainements.html">
+  <title>Programs & Progress – Calisthenics</title>
+  <link rel="canonical" href="https://calisthenicsambition.com/training.html">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="css/entrainements.css">
   <link rel="icon" type="image/png" href="images/favicon.png">
+  <link rel="alternate" hreflang="en" href="https://calisthenicsambition.com/entrainements-en.html">
   <link rel="alternate" hreflang="fr" href="https://calisthenicsambition.com/entrainements.html">
-  <link rel="alternate" hreflang="en" href="https://calisthenicsambition.com/training.html">
-  
-
 <script src="js/header.js"></script>
 
 <body>
   <header class="site-header">
   <a href="/" class="logo">
-    <img src="images/logo.png" alt="Logo Calisthénie & ambition">
-    <span>Calisthénie & ambition</span>
+    <img src="images/logo.png" alt="Calisthenics & Ambition Logo">
+    <span>Calisthenics & Ambition</span>
   </a>
 
 
@@ -35,28 +33,28 @@
    <!-- 🔗 BLOC DROIT : NAV + LANG -->
   <div class="header-right">
     <nav class="main-nav">
-      <a href="/">🌐 Accueil</a>
-      <a href="entrainements.html">📊 Programmes & progression</a>
-      <a href="tutoriel.html">🎥 Tutoriel outil</a>
+      <a href="index-en.html">🌐 Home</a>
+      <a href="entrainements-en.html">📊 Programs & Progress</a>
+      <a href="tutorial-en.html">🎥 Tool Tutorial</a>
       <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
     </nav>
 
     <div class="lang-switch">
-      <a href="entrainements.html" title="Français" class="lang-flag">FR</a>
-      <a href="training.html" title="English" class="lang-flag">GB</a>
+    <a href="entrainements-en.html" title="English" class="lang-flag">GB</a>
+    <a href="entrainements.html" title="Français" class="lang-flag">FR</a>
     </div>
   </div>
-  <!-- Bouton mobile -->
-  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+  <!-- Mobile button -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Open menu">
     ☰
   </button>
 
-  <!-- Navigation mobile -->
+  <!-- Mobile navigation -->
   <nav class="mobile-nav" id="mobileNav">
 
-    <a href="/">🌐 Accueil</a>
-    <a href="entrainements.html">📊 Programmes & progression</a>
-    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="index-en.html">🌐 Home</a>
+    <a href="entrainements-en.html">📊 Programs & Progress</a>
+    <a href="tutoriel-en.html">🎥 Tool Tutorial</a>
     <a href="leaderboard.html">✨ Leaderboard ✨</a>
   </nav>
 
@@ -66,9 +64,9 @@
     <!-- UI for login publications and feed -->    
 
 <section class="structured-log" style="margin-top:16px;">
-  <h2 class="section-title">Communauté</h2>
+  <h2 class="section-title">Community</h2>
   <p style="font-size:14px;color:#555;">
-    Publie ta première séance (pseudo) et consulte le feed public pour t’inspirer. Attention, une fois ton pseudo saisi et validé, il n’est plus modifiable ! Plus bas tu trouveras l'outil d'entraînement conçu par un athlète pour les athlètes !
+    Publish your first session and get inspiration from the public Feed ! Once your have defined your username, it will remain the same. You will find below the training tool created by an athlete for athletes ! Feel free to use the new AI counting tool to track your reps and hold times automatically during your sessions.
   </p>
 
   <div class="session-meta" style="align-items:flex-end;">
@@ -78,36 +76,36 @@
     </label>
 
     <label>
-      Mot de passe
+        Password
       <input id="auth-pass" type="password" placeholder="••••••••">
     </label>
 
     <button class="btn btn-secondary" type="button" onclick="signup();">
-      S’inscrire
+      Sign up
     </button>
     <button class="btn btn-primary" type="button" onclick="login();">
-      Se connecter
+      Log in
     </button>
     <button class="btn btn-secondary" type="button" onclick="logout();">
-      Déconnexion
+      Log out
     </button>
   </div>
 
   <div class="session-meta" style="margin-top:10px; align-items:flex-end;">
     <label>
-      Pseudo (public)
+      Username (public)
       <input id="public-username" type="text" placeholder="ex: cali_ambition">
     </label>
 
     <button class="btn btn-primary" type="button" onclick="saveUsername()">
-      Enregistrer mon pseudo
+      Save My Username
     </button>
 
 <button class="btn-live" id="liveBtn" type="button">
   <span class="live-dot"></span>
   <strong>LIVE</strong>
   <span class="v-sep"></span>
-  Enregistrer une séance auto
+  Record Auto Session
 </button>
 
 
@@ -119,7 +117,7 @@
 
   <hr style="border:none;border-top:1px solid #eee;margin:14px 0;">
 
-  <h3 style="margin:0 0 8px;font-size:15px;">Feed public (dernières séances)</h3>
+  <h3 style="margin:0 0 8px;font-size:15px;">Public Feed (Latest Sessions)</h3>
   <div id="public-feed"></div>
 
 
@@ -129,46 +127,46 @@
 
     <!-- INTRO -->
     <section class="hero">
-      <h1>Programmes & journal de progression</h1>
+      <h1>Programs & Progress Journal</h1>
       <p>
-        Cette page présente un outil clé pour qui crée la différence en terme de motivation : <strong> le suivi automatisé de chaque séance que tu réalises</strong>. <br>
-        En tant qu'athlète, j'ai longuement rêvé d'avoir un tel outil à ma disposition : désormais, il est là, le hack, à toi de jouer ! <br>
+        This page presents a key tool that makes a difference for motivation: <strong>automated tracking of each session you perform</strong>. <br>
+        As an athlete, I long dreamed of having such a tool available: now it exists — the hack is here, your turn to use it! <br>
       </p>
       <p>
-        L’idée est de :
+        The idea is to:
       </p>
       <ul style="margin-top: 4px; padding-left: 18px; font-size: 14px;">
-        <li>si besoin, choisir en bas de cette page un niveau qui te parle (ou en tester plusieurs),</li>
-        <li>sélectionner ou saisir les exercices que tu es en train d'exécuter, <span class="sexy-ai">l'outil IA</span> permet d'enregistrer ton exercice en comptant tes répétitions et/ou ton temps de maintien !</li>
-        <li>documenter ta progression et tes ressentis au fil des séances avec le super outil que je te propose en bas,</li>
-        <li>apprécier au fil du temps ton progrès à travers les courbes réalisées automatiquement à partir de tes séances.</li>
-        <li> ⚠️ il est extrêmement important de ne pas oublier de réaliser un échauffement des muscles avant d'attaquer les exercices.</li>
-        <li> je t'invite à lire 
+        <li>if needed, choose a level at the bottom of this page that fits you (or try several),</li>
+        <li>select or enter the exercises you are performing — the <span class="sexy-ai">AI tool</span> allows you to record your exercise by counting reps and/or hold time!</li>
+        <li>document your progress and feelings across sessions with the great tool I provide below,</li>
+        <li>appreciate your progress over time through the charts automatically generated from your sessions.</li>
+        <li>⚠️ it is extremely important to warm up your muscles before starting exercises.</li>
+        <li>I invite you to read
   <a href="echauffement.html" target="_blank" style="text-decoration:none; color:#111; font-weight:500;">
-    mon article
-  </a> 
-  sur l'échauffement présentant un exemple d'exercices préparant à l'effort physique.
+    my article
+  </a>
+  on warm-ups, which presents an example of exercises to prepare for physical effort.
 </li>
 </section>
 
-    <!-- JOURNAL STRUCTURÉ (TABLEAU) -->
+    <!-- STRUCTURED SESSION JOURNAL (TABLE) -->
 <section class="structured-log">
   <div class="structured-log-header">
-    <h2 class="section-title">Journal structuré de séance</h2>
+    <h2 class="section-title">Structured Session Journal</h2>
     <p style="font-size: 14px; color:#555;">
-      Utilise ce tableau pour consigner une séance précise : date, niveau, durée, exercices,
-      éventuel lest, répétitions par série et ressenti global. Les données sont stockées dans ton compte.
+      Use this table to record a precise session: date, level, duration, exercises,
+      optional load, repetitions per set and overall feeling. Data is stored in your account.
     </p>
   </div>
 
   <div class="session-meta">
     <label>
-      Date de la séance
+      Session date
       <input type="date" id="session-date" />
     </label>
 
     <label>
-      Durée (minutes)
+      Duration (minutes)
       <input type="number" id="session-duration" min="0" step="1" />
     </label>
   </div>
@@ -177,17 +175,17 @@
     <table class="session-table">
       <thead>
         <tr>
-          <th>Exercice</th>
-          <th>Lest (kg)</th>
-          <th>Série 1</th>
-          <th>Série 2</th>
-          <th>Série 3</th>
-          <th>Série 4</th>
-          <th>Série 5</th>
-          <th>Série 6</th>
-          <th>Série 7</th>
-          <th>Série 8</th>
-          <th>Ressenti</th>
+          <th>Exercise</th>
+          <th>Load (kg)</th>
+          <th>Set 1</th>
+          <th>Set 2</th>
+          <th>Set 3</th>
+          <th>Set 4</th>
+          <th>Set 5</th>
+          <th>Set 6</th>
+          <th>Set 7</th>
+          <th>Set 8</th>
+          <th>Notes</th>
           <th></th>
         </tr>
       </thead>
@@ -200,18 +198,18 @@
 
   <div class="session-actions">
     <button class="btn btn-secondary" type="button" onclick="addExerciseRow()">
-      Ajouter un exercice
+      Add Exercise
     </button>
     <button class="btn btn-primary" type="button" onclick="saveStructuredSession()">
-      Enregistrer la séance
+      Save Session
     </button>
   </div>
 
   <div class="info" id="session-save-info"></div>
         <div class="sessions-history">
-        <h3 style="font-size: 15px; margin: 6px 0 4px;">Historique personnel des séances</h3>
+        <h3 style="font-size: 15px; margin: 6px 0 4px;">Personal session history</h3>
         <p style="font-size: 12px; color:#555; margin:0 0 6px;">
-          Les dernières séances enregistrées s’affichent ci-dessous.
+          Your most recent saved sessions appear below.
         </p>
         <div id="sessions-history"></div>
       </div>
@@ -220,20 +218,20 @@
 
     <!-- TABLEAU DE BORD -->
     <section class="dashboard">
-      <h2 class="section-title">Tableau de bord de progression</h2>
+      <h2 class="section-title">Progress Dashboard</h2>
       <p style="font-size: 14px; color:#555;">
-        Sélectionne un exercice et une métrique pour visualiser ta progression au fil des séances.
-        Les données proviennent de ton journal structuré et restent stockées dans ton compte. Elles sont publiées dans le Feed.
+        Select an exercise and a metric to visualize your progress across sessions.
+        Data comes from your structured journal and stays stored in your account. It is also published to the Feed.
       </p>
 
 
       <div class="dashboard-controls">
       <div class="control">
-        <label>Exercice à analyser</label>
+        <label>Exercise to analyze</label>
         <div class="exercise-row">
           <select id="dashboard-exercise">
-            <option value="Tractions">Tractions</option>
-            <option value="Pompes">Pompes</option>
+            <option value="Pull-ups">Pull-ups</option>
+            <option value="Push-ups">Push-ups</option>
             <option value="Dips">Dips</option>
             <option value="Planche lean">Planche lean</option>
             <option value="Tuck planche">Tuck planche</option>
@@ -245,22 +243,22 @@
             <option value="Human Flag">Human Flag</option>
             <option value="Front Lever">Front Lever</option>
             <option value="Muscle Up">Muscle Up</option>
-            <option value="__custom_reps__">Autre... (Reps)</option>
-            <option value="__custom_hold__">Autre... (Hold)</option>
+            <option value="__custom_reps__">Other... (Reps)</option>
+            <option value="__custom_hold__">Other... (Hold)</option>
 
           </select>
 
           <input
             id="custom-exercise"
             type="text"
-            placeholder="Nom de l'exercice"
+            placeholder="Exercise name"
             style="display:none;"
           />
         </div>
       </div>
 
       <div class="control">
-        <label>Métrique</label>
+        <label>Metric</label>
         <select id="dashboard-metric"></select>
       </div>
     </div>
@@ -277,46 +275,46 @@
 
     <!-- ANNEXE : PROGRAMMES -->
     <section class="workouts">
-      <h2>ℹ️ Programmes par niveau</h2>
+      <h2>ℹ️ Programs by level</h2>
       <p>
-        En bas de cette page, je t'ai aussi proposé trois grandes classes de niveaux – <strong>débutant</strong>, <strong>intermédiaire</strong>
-        et <strong>avancé / pro</strong> – avec des exemples de structures d’entraînement. Il y a évidemment une infinité de façons de combiner les exercices. Ma proposition est un point de départ. Sois libre de l'adapter à ton niveau, en intégrant des exercices à difficulté variable !
+        Further down this page you'll find three broad level categories – <strong>Beginner</strong>, <strong>Intermediate</strong>
+        and <strong>Advanced / Pro</strong> – with example workout structures. There are obviously endless ways to combine exercises. My proposal is a starting point. Feel free to adapt it to your level by choosing exercises of varying difficulty!
       </p>
 
       <div class="workout-grid">
-        <!-- Débutant -->
+        <!-- Beginner -->
         <article class="workout-card">
-          <div class="workout-level">Débutant</div>
-          <h3>Routine full body simple</h3>
+          <div class="workout-level">Beginner</div>
+          <h3>Simple full-body routine</h3>
           <ul>
-            <li>3 × 8–10 pompes inclinées (mains sur le sol / canapé)</li>
-            <li>3 × 10 squats au poids du corps</li>
-            <li>3 × 20 s gainage planche</li>
-            <li>3 × 5-10 tractions négatives </li>
+            <li>3 × 8–10 incline push-ups (hands on floor / couch)</li>
+            <li>3 × 10 bodyweight squats</li>
+            <li>3 × 20 s plank hold</li>
+            <li>3 × 5–10 negative pull-ups</li>
           </ul>
           <p>
-            Objectif : apprendre les bases, sentir les mouvements, construire une première régularité
-            sans écraser le système nerveux.
+            Goal: learn the basics, feel the movements, build initial consistency
+            without overloading the nervous system.
           </p>
         </article>
 
         <!-- Intermédiaire -->
         <article class="workout-card">
-          <div class="workout-level">Intermédiaire</div>
-          <h3>Routine traction / push</h3>
+          <div class="workout-level">Intermediate</div>
+          <h3>Pull / Push routine</h3>
           <ul>
-            <li>4 × 6–8 tractions strictes</li>
-            <li>4 × 8–12 pompes classiques</li>
-            <li>3 × 8 dips sur barres ou chaises</li>
-            <li>4 x 10 s hold handstand au mur ou libre si tu es à l'aise</li>
-            <li>4 x 3-10s hold tuck planche </li>
-            <li>4 x 3-7 handstand push ups si tu es tenace</li>
+              <li>4 × 6–8 tractions strict pull-ups</li>
+              <li>4 × 8–12 classic push-ups</li>
+              <li>3 × 8 dips on bars or chairs</li>
+              <li>4 × 10 s handstand hold (wall or freestanding if comfortable)</li>
+              <li>4 × 3–10 s tuck planche holds</li>
+              <li>4 × 3–7 handstand push-ups if you're persistent</li>
             
 
           </ul>
           <p>
-            Objectif : consolider la force de base et préparer le terrain pour les skills
-            (muscle-up, front lever, planche variantes plus avancées).
+            Goal: consolidate base strength and prepare the ground for skills
+            (muscle-up, front lever, more advanced planche variations).
           </p>
         </article>
 
@@ -389,11 +387,11 @@ async function getAuthedUserOrWarn(infoEl) {
   const { data, error } = await supabaseClient.auth.getUser();
   if (error) {
     console.error("[auth] getUser error", error);
-    infoEl && (infoEl.textContent = "❌ Erreur auth (voir console).");
+    infoEl && (infoEl.textContent = "❌ Auth error (see console).");
     return null;
   }
   if (!data?.user) {
-    infoEl && (infoEl.textContent = "⚠️ Connecte-toi pour enregistrer et voir tes séances.");
+    infoEl && (infoEl.textContent = "⚠️ Log in to save and view your sessions.");
     return null;
   }
   return data.user;
@@ -572,7 +570,7 @@ async function getStructuredSessions() {
 
 function clearPrivateUI() {
   const hist = document.getElementById("sessions-history");
-  if (hist) hist.innerHTML = "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+  if (hist) hist.innerHTML = "<p style='font-size:12px; color:#777;'>Log in to see your sessions.</p>";
 
   const info = document.getElementById("session-save-info");
   if (info) info.textContent = "";
@@ -581,12 +579,12 @@ function clearPrivateUI() {
   if (input) {
     input.disabled = true;
     input.value = "";
-    input.placeholder = "Connexion requise";
-    input.title = "Connexion requise";
+    input.placeholder = "Login required";
+    input.title = "Login required";
   }
 
   const dashInfo = document.getElementById("dashboard-info");
-  if (dashInfo) dashInfo.textContent = "Connecte-toi pour voir ton tableau de bord.";
+  if (dashInfo) dashInfo.textContent = "Log in to view your dashboard.";
 
   if (exerciseChart) {
     exerciseChart.destroy();
@@ -611,13 +609,13 @@ function updateAuthUI(user) {
     if (emailInput) {
       emailInput.disabled = true;
       emailInput.value = user.email || "";
-      emailInput.title = "Connecté";
+      emailInput.title = "Logged in";
     }
 
     if (passInput) {
       passInput.disabled = true;
       passInput.value = "••••••••";
-      passInput.title = "Mot de passe masqué";
+      passInput.title = "Password hidden";
     }
 
     signupBtn && (signupBtn.disabled = true);
@@ -696,9 +694,9 @@ function createExerciseRow(data) {
   tr.innerHTML = `
     <td>
       <select class="ex-name">
-        <option value="">– Sélectionne –</option>
-        <option value="Tractions">Tractions</option>
-        <option value="Pompes">Pompes</option>
+        <option value="">– Select –</option>
+        <option value="Pull-ups">Pull-ups</option>
+        <option value="Push-ups">Push-ups</option>
         <option value="Dips">Dips</option>
         <option value="Planche lean">Planche lean</option>
         <option value="Tuck planche">Tuck planche</option>
@@ -710,10 +708,10 @@ function createExerciseRow(data) {
         <option value="Human Flag">Human Flag</option>
         <option value="Front Lever">Front Lever</option>
         <option value="Muscle Up">Muscle Up</option>
-        <option value="__custom_reps__">Autre... (Reps)</option>
-        <option value="__custom_hold__">Autre... (Hold)</option>
+        <option value="__custom_reps__">Other... (Reps)</option>
+        <option value="__custom_hold__">Other... (Hold)</option>
       </select>
-      <input type="text" class="ex-custom" placeholder="Nom de l'exercice…"
+      <input type="text" class="ex-custom" placeholder="Exercise name…"
         style="display:none; margin-top:6px;" />
     </td>
     <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
@@ -725,7 +723,7 @@ function createExerciseRow(data) {
     <td><input type="number" class="ex-s6" min="0" step="1" value="${data?.s6 || ""}"></td>
     <td><input type="number" class="ex-s7" min="0" step="1" value="${data?.s7 || ""}"></td>
     <td><input type="number" class="ex-s8" min="0" step="1" value="${data?.s8 || ""}"></td>
-    <td><input type="text" class="ex-ressenti" placeholder="Ressenti global" value="${data?.ressenti || ""}"></td>
+    <td><input type="text" class="ex-ressenti" placeholder="Overall feeling" value="${data?.ressenti || ""}"></td>
     <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
   `;
 
@@ -835,7 +833,7 @@ async function saveStructuredSession() {
   const safeDisplayUsername =
     publicUsername ||
     (user.user_metadata?.username || user.user_metadata?.name || "").toString().trim() ||
-    `Utilisateur${userNumber}`;
+    `User${userNumber}`;
 
 
   const row = {
@@ -846,18 +844,18 @@ async function saveStructuredSession() {
   };
 
 
-  info && (info.textContent = "⏳ Enregistrement Supabase...");
+  info && (info.textContent = "⏳ Saving to Supabase...");
 
   const { error } = await supabaseClient.from("workout_sessions").insert([row]);
   if (error) {
     console.error("[save] supabase insert error", error);
-    info && (info.textContent = "❌ Erreur Supabase (voir console).");
+    info && (info.textContent = "❌ Supabase error (see console).");
     return;
   }
 
   const d = new Date(session.date);
   const formatted = isNaN(d.getTime()) ? session.date : d.toLocaleDateString();
-  info && (info.textContent = `✅ Séance enregistrée pour le ${formatted} (Supabase).`);
+  info && (info.textContent = `✅ Session saved for ${formatted} (Supabase).`);
 
   // ✅ Smooth: one scheduled refresh
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
@@ -938,8 +936,8 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
       html += `
         <div class="session-card">
           <div class="session-card-header">
-            <span class="label">Séance du ${escapeHtml(dateStr)}</span>
-            <span>Durée : – min</span>
+            <span class="label">Session of ${escapeHtml(dateStr)}</span>
+            <span>Duration: – min</span>
           </div>
 
           <ul class="session-card-exos">
@@ -966,7 +964,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
             type="button"
             onclick="deleteSessionByDate('${date}')"
           >
-            Supprimer la séance du jour
+            Delete session for this date
           </button>
         </div>
       `;
@@ -982,7 +980,7 @@ async function deleteSessionByDate(date) {
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
   // FACULTATIF pour prevenir les suppressions par inadvertance
-  const ok = confirm(`Supprimer TOUTES les séances du ${date} ?`);
+  const ok = confirm(`Delete ALL sessions for ${date}?`);
   if (!ok) return;
 
   const { error } = await supabaseClient
@@ -997,7 +995,7 @@ async function deleteSessionByDate(date) {
     return;
   }
 
-  info.textContent = "✅ Séance du jour supprimée";
+  info.textContent = "✅ Sessions for the day deleted";
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
@@ -1019,17 +1017,17 @@ function updateMetricOptions() {
 
   if (isHoldExercise(exName)) {
     options = [
-      { value: "avg_hold", label: "Moyenne des holds" },
-      { value: "max_hold", label: "Max des holds" },
-      { value: "count_hold", label: "Nombre de holds" },
-      { value: "sum_hold", label: "Somme des holds" }
+      { value: "avg_hold", label: "Mean holds" },
+      { value: "max_hold", label: "Max holds" },
+      { value: "count_hold", label: "Number of holds" },
+      { value: "sum_hold", label: "Sum of holds" }
     ];
   } else {
     options = [
-      { value: "avg_reps", label: "Moyenne des reps" },
-      { value: "max_rep", label: "Max des reps" },
-      { value: "count_sets", label: "Nombre de séries" },
-      { value: "sum_reps", label: "Somme des reps" }
+      { value: "avg_reps", label: "Mean reps" },
+      { value: "max_rep", label: "Max reps" },
+      { value: "count_sets", label: "Number of sets" },
+      { value: "sum_reps", label: "Sum of reps" }
     ];
   }
 
@@ -1126,14 +1124,14 @@ async function renderExerciseChart() {
   const { data: sessData } = await supabaseClient.auth.getSession();
   const user = sessData?.session?.user || null;
   if (!user) {
-    info.textContent = "Connecte-toi pour voir ton tableau de bord.";
+    info.textContent = "Log in to view your dashboard.";
     if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
     return;
   }
 
   const exerciseName = getSelectedExerciseName();
   if (!exerciseName) {
-    info.textContent = "Choisis un exercice ou saisis un nom pour l'exercice personnalisé.";
+    info.textContent = "Choose an exercise or enter a name for a custom exercise.";
     if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
     return;
   }
@@ -1151,7 +1149,7 @@ async function renderExerciseChart() {
   if (my !== __chartSeq) return;
 
   if (!labels.length) {
-    info.textContent = "Aucune donnée trouvée pour cet exercice et cette métrique.";
+    info.textContent = "No data found for this exercise and metric.";
     if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
     return;
   }
@@ -1178,8 +1176,8 @@ async function renderExerciseChart() {
       maintainAspectRatio: false,
       layout: { padding: { top: 24, right: 8, left: 4 } },
       scales: {
-        x: { title: { display: true, text: "Séances" } },
-        y: { title: { display: true, text: "Valeur" }, beginAtZero: true }
+        x: { title: { display: true, text: "Sessions" } },
+        y: { title: { display: true, text: "Value" }, beginAtZero: true }
       },
       plugins: {
         legend: { position: "bottom" },
@@ -1465,7 +1463,7 @@ function renderFeedItem(s, currentUserId) {
 
       ${canDelete ? `
         <button class="delete-session-btn" type="button" onclick="deleteSessionByDate('${s.session_date}')">
-          Supprimer cette publication
+          Delete this post (and session)
         </button>
       ` : ""}
     </div>

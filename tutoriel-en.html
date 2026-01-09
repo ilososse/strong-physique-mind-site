@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tutorial – Automatic Training Tool</title>
+  <link rel="canonical" href="https://calisthenicsambition.com/tutoriel.html">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Styles globaux du site -->
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/entrainements.css">
+  <link rel="stylesheet" href="css/tutoriel.css">
+
+
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/favicon.png">
+</head>
+<script src="js/header.js"></script>
+
+<body>
+
+  <!-- ================= HEADER ================= -->
+  <header class="site-header">
+  <a href="/" class="logo">
+    <img src="images/logo.png" alt="Logo Calisthenics & Ambition">
+    <span>Calisthenics & Ambition</span>
+  </a>
+
+  <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
+  <nav class="main-nav">
+    <a href="index-en.html">🌐 Home</a>
+    <a href="entrainements-en.html">📊 Programs & Progress</a>
+    <a href="tutoriel-en.html">🎥 Tool Tutorial</a>
+    <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+  </nav>
+
+    <div class="lang-switch">
+    <a href="tutoriel-en.html" title="English" class="lang-flag">GB</a>
+    <a href="tutoriel.html" title="Français" class="lang-flag">FR</a>
+    </div>
+  <!-- Mobile button -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Open menu">
+    ☰
+  </button>
+
+  <!-- Mobile navigation -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="home.html">🌐 Home</a>
+    <a href="training.html">📊 Programs & Progress</a>
+    <a href="tutorial.html">🎥 Tool Tutorial</a>
+    <a href="leaderboard.html">✨ Leaderboard ✨</a>
+  </nav>
+</header>
+
+  <!-- ================= MAIN ================= -->
+  <main>
+
+    <!-- ===== HERO TUTORIEL ===== -->
+    <section class="card hero-tutorial">
+      <h1>🎥 Tutorial – Automatic Training Tool</h1>
+
+      <p>
+        The tool I offer you on the <a href="entrainements.html">Programs & Progress</a> page allows you to <strong>automatically count your repetitions</strong> (push-ups, pull-ups, handstand push-ups ...)
+        and <strong>your hold times</strong> (handstand, planche, front lever…)
+        using your device's camera. It's an innovative tool that allows you with unprecedented ease to track your sessions automatically thanks to computer vision.
+      </p>
+
+      <p>
+        It was designed to provide <strong>objective feedback</strong> on your practice, without approximation, and meets the need to no longer have to tediously record the content of each session manually in a text tool that becomes obsolete!
+      </p>
+
+            <p>
+        You can record your sessions in two different ways:
+              <ul>
+        <li>You can easily record your session manually by entering exercises and repetitions in the table I provide, then publish your sessions.</li>
+        <li>Or record your session even more easily with the automated AI tool that counts your repetitions / holds. Simply, at the end of each exercise or set of exercises, click on "Save Session" so your session is stored in your account!</li>
+      </ul>
+        
+              </p>
+
+      <p>
+        👉 This page explains to you <strong>how to use the AI tool correctly</strong>
+        to get the best results.
+      </p>
+
+    </section>
+
+    <!-- ===== SECTION À VENIR (exemples) ===== -->
+    
+    <section class="card">
+      <h2>Step 1 – Launch the Tool</h2>
+      <p>Log in (or sign up if it's your first time) and click on the button: <span class="badge-new">LIVE</span>
+      Record a session automatically LIVE.</p>
+      <img src="images/Login.png" alt="Launch the tool">
+      <div class="image-caption">Login block for the training tool</div>
+    </section>
+
+    <section class="card">
+      <h2>Step 2 – Exercise Selection and Optional Weight Configuration</h2>
+      Here are the simple steps to follow: 
+      <ol>
+  <li>Allow camera access and position it so your entire body is visible. I will show you examples of how to use the application below.
+</li>
+  <li>Select the exercise you want to perform from the dropdown menu.</li>
+  <li>In case of a weighted exercise, fill in the <em><strong>weight</strong></em> field by entering the weight in kg.</li>
+</ol>
+    </section>
+
+    <section class="card">
+      <h2>Step 3 – Exercise Execution</h2>
+      <p>For the motion sensor to work optimally, make sure your body is well highlighted.</p>
+      <p>Once the exercise is finished, a message indicating that the set is complete appears and you have the option to save your session (in which case the system adds your set or series of sets to your history) or start a new set of the same exercise!</p>
+      <p>ℹ️ For the following exercises: Push-ups, Pull-ups and Dips, for the exercise to be considered finished, at the end of the movement (either in a suspended position with arms in the air for pull-ups, or in the high position for push-ups or dips) you must remain still for 2.5 seconds! The system then finalizes the set and you can save your session smoothly.</p>
+      <img src="" alt="">
+    </section>
+
+    <section class="card">
+      <h2>Application Usage Examples</h2>
+      <p>Here are demo videos illustrating how to use the application:</p>
+      <div class="video-block">
+        <video controls preload="metadata" controls muted playsinline>
+          <source src="https://res.cloudinary.com/dfjg8njy1/video/upload/v1767562286/Tractions_demo_y1cgat.mp4" type="video/mp4">
+          Your browser does not support video playback.
+        </video>
+        <div class="video-caption">
+          Exercise: Pull-ups
+        </div>
+      </div>
+
+            <div class="video-block">
+        <video controls preload="metadata" controls muted playsinline>
+          <source src="https://res.cloudinary.com/dfjg8njy1/video/upload/v1767562505/PompesDemo_jmfqwn.mp4" type="video/mp4">
+          Your browser does not support video playback.
+        </video>
+        <div class="video-caption">
+          Exercise: Push-ups
+        </div>
+      </div>
+
+
+    </section>
+  </main>
+
+</body>
+</html>

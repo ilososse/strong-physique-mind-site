@@ -8,13 +8,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/favicon.png">
   <link rel="stylesheet" href="css/index.css">
-</head>
+  <link rel="alternate" hreflang="fr" href="https://calisthenicsambition.com/">
+  <link rel="alternate" hreflang="en" href="https://calisthenicsambition.com/home.html">
 
-<script>
-function toggleMenu() {
-  document.getElementById("mobileNav").classList.toggle("open");
-}
-</script>
+  <script src="js/header.js"></script>
+
+</head>
 
 <body>
 <header class="site-header">
@@ -23,13 +22,23 @@ function toggleMenu() {
     <span>Calisthénie & ambition</span>
   </a>
 
+
   <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
-  <nav class="main-nav">
-    <a href="/">🌐 Accueil</a>
-    <a href="entrainements.html">📊 Programmes & progression</a>
-    <a href="tutoriel.html">🎥 Tutoriel outil</a>
-    <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
-  </nav>
+   <!-- 🔗 BLOC DROIT : NAV + LANG -->
+  <div class="header-right">
+    <nav class="main-nav">
+      <a href="/">🌐 Accueil</a>
+      <a href="entrainements.html">📊 Programmes & progression</a>
+      <a href="tutoriel.html">🎥 Tutoriel outil</a>
+      <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+    </nav>
+
+    <div class="lang-switch">
+      <a href="/" title="Français" class="lang-flag">FR</a>
+      <a href="index-en.html" title="English" class="lang-flag">GB</a>
+    </div>
+  </div>
+
 
   <!-- Bouton mobile -->
   <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
@@ -43,6 +52,8 @@ function toggleMenu() {
     <a href="tutoriel.html">🎥 Tutoriel outil</a>
     <a href="leaderboard.html">✨ Leaderboard ✨</a>
   </nav>
+
+
 </header>
 
 

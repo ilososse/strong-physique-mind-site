@@ -8,48 +8,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <link rel="icon" type="image/png" href="images/favicon.png">
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; padding: 0; background: #f7f7f7; }
-    header { padding: 16px 24px; border-bottom: 1px solid #ddd; background: white; }
-    main { max-width: 800px; margin: 0 auto; padding: 24px 16px; background: white; margin-top: 20px; border-radius: 12px; }
-    h1 { margin-top: 0; }
-    a { color: #111; text-decoration: none; }
-        .related-articles {
-      margin-top: 32px;
-      padding-top: 16px;
-      border-top: 1px solid #e5e5e5;
-    }
-
-    .related-articles h2 {
-      font-size: 16px;
-      margin-bottom: 8px;
-    }
-
-    .related-articles ul {
-      padding-left: 18px;
-      margin: 0;
-    }
-
-    .related-articles li {
-      margin-bottom: 6px;
-    }
-
-    .related-articles a {
-      text-decoration: none;
-      color: #111;
-      font-size: 14px;
-    }
-
-    .related-articles a:hover {
-      text-decoration: underline;
-    }
-
-  </style>
+  <link rel="stylesheet" href="css/index.css">
+  <link rel="stylesheet" href="css/posts.css">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/favicon.png">        
 </head>
-<body>
-  <header>
-    <a href="/">← Retour à l’accueil</a>
-  </header>
+
+<script src="js/header.js"></script>
+
+<body>  
+  <!-- ================= HEADER ================= -->
+  <header class="site-header">
+  <a href="/" class="logo">
+    <img src="images/logo.png" alt="Logo Calisthénie & ambition">
+    <span>Calisthénie & ambition</span>
+  </a>
+
+  <!-- Navigation desktop (EXISTANTE, inchangée visuellement) -->
+  <nav class="main-nav">
+    <a href="/">🌐 Accueil</a>
+    <a href="entrainements.html">📊 Programmes & progression</a>
+    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="leaderboard.html" target="_blank" rel="noopener noreferrer">✨ Leaderboard ✨</a>
+  </nav>
+
+      <div class="lang-switch">
+      <a href="la-calisthenie.html" title="Français" class="lang-flag">FR</a>
+      <a href="la-calisthenie-en.html" title="English" class="lang-flag">GB</a>
+    </div>
+  </div>
+  <!-- Bouton mobile -->
+  <button class="menu-toggle" onclick="toggleMenu()" aria-label="Ouvrir le menu">
+    ☰
+  </button>
+
+  <!-- Navigation mobile -->
+  <nav class="mobile-nav" id="mobileNav">
+    <a href="/">🌐 Accueil</a>
+    <a href="entrainements.html">📊 Programmes & progression</a>
+    <a href="tutoriel.html">🎥 Tutoriel outil</a>
+    <a href="leaderboard.html">✨ Leaderboard ✨</a>
+  </nav>
+</header>
+
+  <!-- ================= MAIN ================= -->
 
   <main>
     <h1>Pourquoi commencer la calisthénie ? 10 raisons de te faire bondir de ton lit pour commencer la calisthénie !</h1>
