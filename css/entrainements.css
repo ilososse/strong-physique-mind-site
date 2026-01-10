@@ -792,9 +792,9 @@ button:disabled {
   .lang-switch {
     position: absolute;
     right: 60px; /* space left of the menu-toggle */
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 12;
+    top: 14px; /* fixed from top so it doesn't move when header height changes */
+    transform: none;
+    z-index: 120;
   }
 }
 
