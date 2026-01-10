@@ -66,3 +66,15 @@
   align-items: center;
   gap: 16px; /* espace entre nav et drapeaux */
 }
+
+/* Ensure language flags stay fixed on mobile (between logo and toggle) */
+@media (max-width: 768px) {
+  .site-header { position: relative; }
+  .lang-switch {
+    position: absolute;
+    right: 60px;
+    top: 28px;
+    transform: none;
+    z-index: 120;
+  }
+}

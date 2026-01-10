@@ -10,6 +10,18 @@ body {
   line-height: 1.5;
 }
 
+/* Ensure language flags stay fixed on mobile (between logo and toggle) */
+@media (max-width: 768px) {
+  .site-header { position: relative; }
+  .lang-switch {
+    position: absolute;
+    right: 60px;
+    top: 28px;
+    transform: none;
+    z-index: 120;
+  }
+}
+
     header {
       padding: 16px 24px;
       border-bottom: 1px solid #ddd;
