@@ -783,6 +783,19 @@ button:disabled {
   .mobile-nav.open {
     display: flex;
   }
+
+  /* Mobile: position language flags between logo and menu toggle */
+  .site-header {
+    position: relative;
+  }
+
+  .lang-switch {
+    position: absolute;
+    right: 60px; /* space left of the menu-toggle */
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 12;
+  }
 }
 
 
@@ -794,35 +807,16 @@ button:disabled {
 }
 
 .lang-flag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 14px;
   text-decoration: none;
-  color: inherit;
   cursor: pointer;
-  opacity: 0.85;
+  opacity: 0.65;
   transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.lang-flag img {
-  width: 22px;
-  height: auto;
-  display: inline-block;
-  vertical-align: middle;
-  border-radius: 3px;
 }
 
 .lang-flag:hover {
   opacity: 1;
-  transform: scale(1.12);
-}
-
-/* helper: visually hide text for screen-readers while keeping accessible label */
-.visually-hidden {
-  position: absolute !important;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  transform: scale(1.15);
 }
 
 
