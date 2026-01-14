@@ -52,5 +52,41 @@
     <priority>0.6</priority>
   </url>
   
+    <!-- ANGLAIS / ENGLISH PAGES -->
+    <url>
+      <loc>https://calisthenicsambition.com/index-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>1.0</priority>
+    </url>
 
-</urlset>
+    <url>
+      <loc>https://calisthenicsambition.com/entrainements-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>0.9</priority>
+    </url>
+
+    <url>
+      <loc>https://calisthenicsambition.com/la-calisthenie-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>0.8</priority>
+    </url>
+
+    <url>
+      <loc>https://calisthenicsambition.com/consistance-perserverence-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>0.7</priority>
+    </url>
+
+    <url>
+      <loc>https://calisthenicsambition.com/echauffement-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>0.6</priority>
+    </url>
+
+    <url>
+      <loc>https://calisthenicsambition.com/tutoriel-en.html</loc>
+      <lastmod>2025-01-15</lastmod>
+      <priority>0.6</priority>
+    </url>
+
+  </urlset>
