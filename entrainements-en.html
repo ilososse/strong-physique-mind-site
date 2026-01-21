@@ -178,6 +178,7 @@
         <tr>
           <th>Exercise</th>
           <th>Load (kg)</th>
+          <th>Assistance (kg)</th>
           <th>Set 1</th>
           <th>Set 2</th>
           <th>Set 3</th>
@@ -501,7 +502,7 @@ function mergeExercises(exercises) {
   const map = new Map();
 
   exercises.forEach(ex => {
-    const key = `${ex.name}__${ex.mode}__${ex.weight || 0}`;
+    const key = `${ex.name}__${ex.mode}__${ex.weight || 0}__${ex.assist || 0}`;
 
     if (!map.has(key)) {
       map.set(key, {
@@ -716,6 +717,10 @@ function createExerciseRow(data) {
         style="display:none; margin-top:6px;" />
     </td>
     <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
+    <td>
+      <input type="number" class="ex-assist" min="0" step="0.5"
+            value="${data?.assist ?? 0}">
+    </td>
     <td><input type="number" class="ex-s1" min="0" step="1" value="${data?.s1 || ""}"></td>
     <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
     <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
@@ -798,6 +803,7 @@ async function saveStructuredSession() {
     if (isCustom && !name) return;
 
     const weight = row.querySelector(".ex-weight")?.value || "0";
+    const assist = row.querySelector(".ex-assist")?.value || "0";
     const s1 = row.querySelector(".ex-s1")?.value || "";
     const s2 = row.querySelector(".ex-s2")?.value || "";
     const s3 = row.querySelector(".ex-s3")?.value || "";
@@ -809,7 +815,15 @@ async function saveStructuredSession() {
     const ressenti = (row.querySelector(".ex-ressenti")?.value || "").trim();
 
     if (name || s1 || s2 || s3 || s4 || s5 || s6 || s7 || s8 || ressenti || weight !== "0") {
-      session.exercises.push({ name, mode, weight, s1, s2, s3, s4, s5, s6, s7, s8, ressenti });
+      session.exercises.push({
+  name,
+  mode,
+  weight,
+  assist,
+  s1, s2, s3, s4, s5, s6, s7, s8,
+  ressenti
+});
+
     }
   });
   // ✅ PATCH: récupérer le pseudo depuis user_profiles (source de vérité)
@@ -907,13 +921,15 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
       daySessions.forEach(s => {
         (s.exercises || []).forEach(ex => {
           const weight = Number(ex.weight || 0);
-          const key = `${ex.name}__${weight}`;
+          const assist = Number(ex.assist || 0);
+          const key = `${ex.name}__${weight}__${assist}`;
 
           if (!exoMap.has(key)) {
             exoMap.set(key, {
               name: ex.name,
               mode: ex.mode,
               weight,
+              assist,
               values: [],
               ressenti: []
             });
@@ -950,9 +966,13 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                 : "";
               const weightLabel = ex.weight > 0 ? ` (+${ex.weight}kg)` : "";
 
+              const assistLabel =
+              ex.assist > 0 ? ` (-${ex.assist}kg)` : "";
+
+
               return `
                 <li>
-                  ${escapeHtml(ex.name)}${weightLabel}
+                  ${escapeHtml(ex.name)}${weightLabel}${assistLabel}
                   ${series ? ` – ${escapeHtml(series)} ${unit}` : ""}
                   ${ressenti}
                 </li>
@@ -1051,31 +1071,74 @@ async function buildChartData(exerciseName, metricKey) {
     byDate.get(s.date).push(s);
   });
 
-  const labels = [];
-  const data = [];
+  // 2) Collecter toutes les variantes (weight + assist) pour cet exercice
+  const variantMap = new Map(); // clé: "weight__assist", valeur: { weight, assist, dateData: Map }
 
-  // 2) Un point par JOUR
-  Array.from(byDate.entries())
-    .sort((a, b) => new Date(a[0]) - new Date(b[0]))
-    .forEach(([date, daySessions]) => {
-      let values = [];
+  Array.from(byDate.entries()).forEach(([date, daySessions]) => {
+    daySessions.forEach(s => {
+      const exercises = s.exercises || [];
+      const matching = exercises.filter(ex => ex.name === exerciseName);
 
-      daySessions.forEach(s => {
-        const exercises = s.exercises || [];
-        const matching = exercises.filter(ex =>
-          ex.name === exerciseName && Number(ex.weight || 0) === 0
-        );
+      matching.forEach(ex => {
+        const weight = Number(ex.weight || 0);
+        const assist = Number(ex.assist || 0);
+        const key = `${weight}__${assist}`;
 
-        matching.forEach(ex => {
-          const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-            .map(v => Number(v))
-            .filter(v => Number.isFinite(v) && v > 0);
+        if (!variantMap.has(key)) {
+          variantMap.set(key, {
+            weight,
+            assist,
+            dateData: new Map()
+          });
+        }
 
-          values.push(...nums);
-        });
+        const variant = variantMap.get(key);
+
+        if (!variant.dateData.has(date)) {
+          variant.dateData.set(date, []);
+        }
+
+        const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+          .map(v => Number(v))
+          .filter(v => Number.isFinite(v) && v > 0);
+
+        variant.dateData.get(date).push(...nums);
       });
+    });
+  });
 
-      if (!values.length) return;
+  // 3) Créer les labels (dates uniques) ET identifier les dates avec données
+  const allDates = Array.from(byDate.keys()).sort((a, b) => new Date(a) - new Date(b));
+  
+  // Trouver les dates qui ont au moins une variante avec données
+  const datesWithData = new Set();
+  Array.from(variantMap.values()).forEach(variant => {
+    variant.dateData.forEach((values, date) => {
+      if (values.length > 0) {
+        datesWithData.add(date);
+      }
+    });
+  });
+
+  // Filtrer les dates pour ne garder que celles avec données
+  const filteredDates = allDates.filter(date => datesWithData.has(date));
+  const labels = filteredDates.map(date => {
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? date : d.toLocaleDateString();
+  });
+
+  // 4) Créer les datasets, un par variante
+  const datasets = [];
+  const colors = [
+    "#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF",
+    "#FF9F40", "#FF6384", "#C9CBCF", "#4BC0C0", "#FF6384"
+  ];
+
+  let colorIdx = 0;
+  Array.from(variantMap.values()).forEach(variant => {
+    const data = filteredDates.map(date => {
+      const values = variant.dateData.get(date) || [];
+      if (!values.length) return null;
 
       let pointValue = 0;
 
@@ -1101,14 +1164,29 @@ async function buildChartData(exerciseName, metricKey) {
         else if (metricKey === "max_rep") pointValue = max;
       }
 
-      const d = new Date(date);
-      const dateStr = isNaN(d.getTime()) ? date : d.toLocaleDateString();
-
-      labels.push(dateStr);
-      data.push(pointValue);
+      return pointValue;
     });
 
-  return { labels, data };
+    // Construire le label de la variante
+    let variantLabel = exerciseName;
+    if (variant.weight > 0) variantLabel += ` (+${variant.weight}kg)`;
+    if (variant.assist > 0) variantLabel += ` (-${variant.assist}kg assist)`;
+
+    datasets.push({
+      label: variantLabel,
+      data,
+      borderWidth: 2,
+      tension: 0.2,
+      pointRadius: 3,
+      spanGaps: true,
+      borderColor: colors[colorIdx % colors.length],
+      backgroundColor: colors[colorIdx % colors.length] + "33"
+    });
+
+    colorIdx++;
+  });
+
+  return { labels, datasets };
 }
 
 async function renderExerciseChart() {
@@ -1144,12 +1222,12 @@ async function renderExerciseChart() {
   localStorage.setItem("last-selected-exercise", exerciseName);
   localStorage.setItem("last-selected-metric", metricKey);
 
-  const { labels, data } = await buildChartData(exerciseName, metricKey);
+  const { labels, datasets } = await buildChartData(exerciseName, metricKey);
 
   // ✅ ignore obsolete renders
   if (my !== __chartSeq) return;
 
-  if (!labels.length) {
+  if (!labels.length || !datasets.length) {
     info.textContent = "No data found for this exercise and metric.";
     if (exerciseChart) { exerciseChart.destroy(); exerciseChart = null; }
     return;
@@ -1163,13 +1241,7 @@ async function renderExerciseChart() {
     type: "line",
     data: {
       labels,
-      datasets: [{
-        label: `${exerciseName} – ${metricSelect.options[metricSelect.selectedIndex].text}`,
-        data,
-        borderWidth: 2,
-        tension: 0.2,
-        pointRadius: 3
-      }]
+      datasets: datasets
     },
     plugins: [ChartDataLabels],
     options: {
@@ -1435,10 +1507,13 @@ function renderFeedItem(s, currentUserId) {
     // ✅ NOUVEAU : affichage du lest
     const weightNum = Number(ex.weight || 0);
     const weightLabel = weightNum > 0 ? ` (+${weightNum}kg)` : "";
+    const assistNum = Number(ex.assist || 0);
+    const assistLabel = assistNum > 0 ? ` (-${assistNum}kg)` : "";
+
 
     return `
       <li>
-        ${escapeHtml(ex.name || "Exo")}${weightLabel}
+        ${escapeHtml(ex.name || "Exo")}${weightLabel}${assistLabel}
         ${series ? ` — ${escapeHtml(series)} ${unit}` : ""}
       </li>
     `;
