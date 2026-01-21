@@ -504,7 +504,7 @@ function mergeExercises(exercises) {
   const map = new Map();
 
   exercises.forEach(ex => {
-    const key = `${ex.name}__${ex.mode}__${ex.weight || 0}`;
+    const key = `${ex.name}__${ex.mode}__${ex.weight || 0}__${ex.assist || 0}`;
 
     if (!map.has(key)) {
       map.set(key, {
