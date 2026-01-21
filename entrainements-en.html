@@ -23,6 +23,8 @@
 <script src="js/header.js"></script>
 
 <body>
+<ul id="global-exercise-suggestions" class="exercise-suggestions-global"></ul>
+
 <header class="site-header">
   <a href="index-en.html" class="logo">
     <img src="images/logo.png" alt="Calisthenics & Ambition Logo">
@@ -358,6 +360,33 @@ if (!supabaseClient?.auth || typeof supabaseClient.from !== "function") {
   console.error("Supabase client invalide", supabaseClient);
 }
 
+function normalizeExerciseName(str) {
+  return String(str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+async function searchExercises(query) {
+  const q = normalizeExerciseName(query);
+  if (!q) return [];
+
+  const { data, error } = await supabaseClient
+    .from("exercises")
+    .select("id, name, mode")
+    .ilike("name_normalized", `%${q}%`)
+    .order("name");
+
+  if (error) {
+    console.error("[searchExercises]", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+
 function userIdToNumber1to1000(userId) {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
@@ -690,66 +719,122 @@ const scheduleUIRefresh = (() => {
    STRUCTURED LOG (table)
    ========================================================= */
 
-function createExerciseRow(data) {
+function createExerciseRow(data = {}) {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
     <td>
-      <select class="ex-name">
-        <option value="">– Select –</option>
-        <option value="Pull-ups">Pull-ups</option>
-        <option value="Push-ups">Push-ups</option>
-        <option value="Dips">Dips</option>
-        <option value="Planche lean">Planche lean</option>
-        <option value="Tuck planche">Tuck planche</option>
-        <option value="Straddle planche">Straddle planche</option>
-        <option value="Full planche">Full planche</option>
-        <option value="Handstand">Handstand</option>
-        <option value="One Arm Handstand">One Arm Handstand</option>
-        <option value="Handstand Push Up">Handstand Push Up</option>
-        <option value="Human Flag">Human Flag</option>
-        <option value="Front Lever">Front Lever</option>
-        <option value="Muscle Up">Muscle Up</option>
-        <option value="__custom_reps__">Other... (Reps)</option>
-        <option value="__custom_hold__">Other... (Hold)</option>
-      </select>
-      <input type="text" class="ex-custom" placeholder="Exercise name…"
-        style="display:none; margin-top:6px;" />
+      <input
+        type="text"
+        class="ex-name"
+        placeholder="Pull-ups, Front Lever..."
+        autocomplete="off"
+        value="${data.name ?? ""}"
+      />
     </td>
-    <td><input type="number" class="ex-weight" min="0" step="0.5" value="${data?.weight ?? 0}"></td>
+
     <td>
-      <input type="number" class="ex-assist" min="0" step="0.5"
-            value="${data?.assist ?? 0}">
+      <input type="number" class="ex-weight" min="0" step="0.5" value="${data.weight ?? 0}">
     </td>
-    <td><input type="number" class="ex-s1" min="0" step="1" value="${data?.s1 || ""}"></td>
-    <td><input type="number" class="ex-s2" min="0" step="1" value="${data?.s2 || ""}"></td>
-    <td><input type="number" class="ex-s3" min="0" step="1" value="${data?.s3 || ""}"></td>
-    <td><input type="number" class="ex-s4" min="0" step="1" value="${data?.s4 || ""}"></td>
-    <td><input type="number" class="ex-s5" min="0" step="1" value="${data?.s5 || ""}"></td>
-    <td><input type="number" class="ex-s6" min="0" step="1" value="${data?.s6 || ""}"></td>
-    <td><input type="number" class="ex-s7" min="0" step="1" value="${data?.s7 || ""}"></td>
-    <td><input type="number" class="ex-s8" min="0" step="1" value="${data?.s8 || ""}"></td>
-    <td><input type="text" class="ex-ressenti" placeholder="Overall feeling" value="${data?.ressenti || ""}"></td>
-    <td><button class="remove-row-btn" type="button" onclick="removeExerciseRow(this)">×</button></td>
+
+    <td>
+      <input type="number" class="ex-assist" min="0" step="0.5" value="${data.assist ?? 0}">
+    </td>
+
+    <td><input type="number" class="ex-s1" min="0" step="1" value="${data.s1 ?? ""}"></td>
+    <td><input type="number" class="ex-s2" min="0" step="1" value="${data.s2 ?? ""}"></td>
+    <td><input type="number" class="ex-s3" min="0" step="1" value="${data.s3 ?? ""}"></td>
+    <td><input type="number" class="ex-s4" min="0" step="1" value="${data.s4 ?? ""}"></td>
+    <td><input type="number" class="ex-s5" min="0" step="1" value="${data.s5 ?? ""}"></td>
+    <td><input type="number" class="ex-s6" min="0" step="1" value="${data.s6 ?? ""}"></td>
+    <td><input type="number" class="ex-s7" min="0" step="1" value="${data.s7 ?? ""}"></td>
+    <td><input type="number" class="ex-s8" min="0" step="1" value="${data.s8 ?? ""}"></td>
+
+    <td>
+      <input
+        type="text"
+        class="ex-ressenti"
+        placeholder="Overall feeling"
+        value="${data.ressenti ?? ""}"
+      >
+    </td>
+
+    <td>
+      <button class="remove-row-btn" type="button">×</button>
+    </td>
   `;
 
-  const select = tr.querySelector(".ex-name");
-  const custom = tr.querySelector(".ex-custom");
+  const input = tr.querySelector(".ex-name");
+  const removeBtn = tr.querySelector(".remove-row-btn");
+  const dropdown = document.getElementById("global-exercise-suggestions");
 
-  function syncRowCustom() {
-    const v = select.value;
-    const isCustom = (v === "__custom_reps__" || v === "__custom_hold__");
-    custom.style.display = isCustom ? "block" : "none";
-    if (!isCustom) custom.value = "";
+  // Préserve le mode si déjà connu (édition / historique)
+  if (data.mode) {
+    input.dataset.mode = data.mode;
   }
 
-  select.addEventListener("change", syncRowCustom);
-  syncRowCustom();
+  let lastQuery = "";
 
-  if (data?.name) {
-    tr.querySelector(".ex-name").value = data.name;
-    syncRowCustom();
-  }
+  /* -------------------------
+     AUTOCOMPLÉTION (globale)
+  -------------------------- */
+
+  input.addEventListener("input", async () => {
+    const value = input.value.trim();
+
+    input.dataset.mode = "";
+    dropdown.innerHTML = "";
+    dropdown.style.display = "none";
+
+    if (!value || value === lastQuery) return;
+    lastQuery = value;
+
+    const results = await searchExercises(value);
+    if (!results.length) return;
+
+    const rect = input.getBoundingClientRect();
+
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.width = `${rect.width}px`;
+    dropdown.style.display = "block";
+
+    results.forEach(ex => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>${ex.name}</span>
+        <span style="opacity:.6;font-size:12px;margin-left:6px;">
+          ${ex.mode}
+        </span>
+      `;
+
+      li.addEventListener("click", () => {
+        input.value = ex.name;
+        input.dataset.mode = ex.mode;
+        dropdown.style.display = "none";
+      });
+
+      dropdown.appendChild(li);
+    });
+  });
+
+  /* -------------------------
+     FERMETURE DROPDOWN
+  -------------------------- */
+
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && e.target !== input) {
+      dropdown.style.display = "none";
+    }
+  });
+
+  /* -------------------------
+     SUPPRESSION DE LIGNE
+  -------------------------- */
+
+  removeBtn.addEventListener("click", () => {
+    tr.remove();
+  });
 
   return tr;
 }
@@ -787,20 +872,14 @@ async function saveStructuredSession() {
   };
 
   rows.forEach(row => {
-    const selectVal = row.querySelector(".ex-name")?.value || "";
-    const customVal = (row.querySelector(".ex-custom")?.value || "").trim();
+const name = row.querySelector(".ex-name")?.value.trim() || "";
 
-    const isCustomReps = selectVal === "__custom_reps__";
-    const isCustomHold = selectVal === "__custom_hold__";
-    const isCustom = isCustomReps || isCustomHold;
+let mode = row.querySelector(".ex-name")?.dataset?.mode;
 
-    const name = isCustom ? customVal : selectVal;
-
-    const mode = isCustom
-      ? (isCustomHold ? "hold" : "reps")
-      : (isHoldExercise(selectVal) ? "hold" : "reps");
-
-    if (isCustom && !name) return;
+if (!mode) {
+  // fallback si exercice inconnu / custom
+  mode = isHoldExercise(name) ? "hold" : "reps";
+}
 
     const weight = row.querySelector(".ex-weight")?.value || "0";
     const assist = row.querySelector(".ex-assist")?.value || "0";
