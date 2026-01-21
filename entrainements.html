@@ -25,7 +25,6 @@
 <script src="js/header.js"></script>
 
 <body>
-<ul id="global-exercise-suggestions" class="exercise-suggestions-global"></ul>
 
 <header class="site-header">
   <a href="/" class="logo">
@@ -718,7 +717,7 @@ function createExerciseRow(data = {}) {
   const tr = document.createElement("tr");
 
   tr.innerHTML = `
-    <td>
+    <td class="ex-input-container">
       <input
         type="text"
         class="ex-name"
@@ -761,7 +760,32 @@ function createExerciseRow(data = {}) {
 
   const input = tr.querySelector(".ex-name");
   const removeBtn = tr.querySelector(".remove-row-btn");
-  const dropdown = document.getElementById("global-exercise-suggestions");
+  
+  // Créer le dropdown en tant que global, placé au body
+  const dropdown = document.createElement("ul");
+  dropdown.className = "exercise-suggestions-row";
+  dropdown.style.display = "none";
+  document.body.appendChild(dropdown);
+  
+  function positionDropdown() {
+    const rect = input.getBoundingClientRect();
+    const isMobile = window.innerWidth <= 768;
+    
+    dropdown.style.position = "fixed";
+    dropdown.style.zIndex = "9999";
+    
+    if (isMobile) {
+      dropdown.style.left = "10px";
+      dropdown.style.right = "10px";
+      dropdown.style.width = "auto";
+    } else {
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.width = `${rect.width}px`;
+      dropdown.style.right = "auto";
+    }
+    
+    dropdown.style.top = `${rect.bottom + 4}px`;
+  }
 
   // Préserve le mode si déjà connu (édition / historique)
   if (data.mode) {
@@ -771,32 +795,8 @@ function createExerciseRow(data = {}) {
   let lastQuery = "";
 
   /* -------------------------
-     AUTOCOMPLÉTION (globale)
+     AUTOCOMPLÉTION (avec dropdown global)
   -------------------------- */
-
-  // Fonction pour repositionner la dropdown
-  function repositionDropdown() {
-    if (dropdown.style.display !== "block") return;
-    const isMobile = window.innerWidth <= 768;
-    
-    if (isMobile) {
-      // Sur mobile, utiliser position fixed avec calcul intelligent
-      const rect = input.getBoundingClientRect();
-      dropdown.style.position = "fixed";
-      dropdown.style.left = "10px";
-      dropdown.style.right = "10px";
-      dropdown.style.top = `${rect.bottom + 4}px`;
-      dropdown.style.width = "auto";
-    } else {
-      // Sur desktop, utiliser position fixed
-      const rect = input.getBoundingClientRect();
-      dropdown.style.position = "fixed";
-      dropdown.style.left = `${rect.left}px`;
-      dropdown.style.top = `${rect.bottom + 4}px`;
-      dropdown.style.width = `${rect.width}px`;
-      dropdown.style.right = "auto";
-    }
-  }
 
   input.addEventListener("input", async () => {
     const value = input.value.trim();
@@ -812,26 +812,7 @@ function createExerciseRow(data = {}) {
     if (!results.length) return;
 
     dropdown.style.display = "block";
-    
-    const isMobile = window.innerWidth <= 768;
-    
-    if (isMobile) {
-      // Sur mobile, utiliser position fixed avec marges
-      const rect = input.getBoundingClientRect();
-      dropdown.style.position = "fixed";
-      dropdown.style.left = "10px";
-      dropdown.style.right = "10px";
-      dropdown.style.top = `${rect.bottom + 4}px`;
-      dropdown.style.width = "auto";
-    } else {
-      // Sur desktop, utiliser position fixed
-      const rect = input.getBoundingClientRect();
-      dropdown.style.position = "fixed";
-      dropdown.style.left = `${rect.left}px`;
-      dropdown.style.top = `${rect.bottom + 4}px`;
-      dropdown.style.width = `${rect.width}px`;
-      dropdown.style.right = "auto";
-    }
+    positionDropdown();
 
     results.forEach(ex => {
       const li = document.createElement("li");
@@ -851,10 +832,6 @@ function createExerciseRow(data = {}) {
       dropdown.appendChild(li);
     });
   });
-
-  // Repositionner lors du défilement ou redimensionnement
-  window.addEventListener("scroll", repositionDropdown, true);
-  window.addEventListener("resize", repositionDropdown);
 
   /* -------------------------
      FERMETURE DROPDOWN

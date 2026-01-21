@@ -847,6 +847,12 @@ button:disabled {
 }
 
 
+.ex-input-container {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
 .exercise-autocomplete {
   position: relative;
   width: 100%;
@@ -873,6 +879,22 @@ button:disabled {
   left: 0;
   right: 0;
   z-index: 1000;
+  display: none;
+}
+
+.exercise-suggestions-row {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .exercise-suggestions-global {
@@ -910,7 +932,8 @@ button:disabled {
 /* Items communs pour toutes les dropdown */
 .exercise-suggestions li,
 .exercise-suggestions-global li,
-.exercise-suggestions-dashboard li {
+.exercise-suggestions-dashboard li,
+.exercise-suggestions-row li {
   padding: 8px 12px;
   cursor: pointer;
   font-size: 12px;
@@ -918,7 +941,8 @@ button:disabled {
 
 .exercise-suggestions li:hover,
 .exercise-suggestions-global li:hover,
-.exercise-suggestions-dashboard li:hover {
+.exercise-suggestions-dashboard li:hover,
+.exercise-suggestions-row li:hover {
   background: #f5f5f5;
 }
 
