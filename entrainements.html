@@ -781,6 +781,15 @@ function createExerciseRow(data = {}) {
      AUTOCOMPLÉTION (globale)
   -------------------------- */
 
+  // Fonction pour repositionner la dropdown
+  function repositionDropdown() {
+    if (dropdown.style.display !== "block") return;
+    const rect = input.getBoundingClientRect();
+    dropdown.style.left = `${rect.left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.width = `${rect.width}px`;
+  }
+
   input.addEventListener("input", async () => {
     const value = input.value.trim();
 
@@ -819,6 +828,10 @@ function createExerciseRow(data = {}) {
       dropdown.appendChild(li);
     });
   });
+
+  // Repositionner lors du défilement ou redimensionnement
+  window.addEventListener("scroll", repositionDropdown, true);
+  window.addEventListener("resize", repositionDropdown);
 
   /* -------------------------
      FERMETURE DROPDOWN
