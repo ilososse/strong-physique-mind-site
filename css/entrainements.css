@@ -884,7 +884,7 @@ button:disabled {
 
 .exercise-suggestions-row {
   position: fixed;
-  z-index: 9999;
+  z-index: 99999;
   display: none;
   background: #fff;
   border: 1px solid #ddd;
