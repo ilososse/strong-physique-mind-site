@@ -233,24 +233,15 @@
       <div class="control">
         <label>Exercise to analyze</label>
         <div class="exercise-row">
-          <select id="dashboard-exercise">
-            <option value="Pull-ups">Pull-ups</option>
-            <option value="Push-ups">Push-ups</option>
-            <option value="Dips">Dips</option>
-            <option value="Planche lean">Planche lean</option>
-            <option value="Tuck planche">Tuck planche</option>
-            <option value="Straddle planche">Straddle planche</option>
-            <option value="Full planche">Full planche</option>
-            <option value="Handstand">Handstand</option>
-            <option value="One Arm Handstand">One Arm Handstand</option>
-            <option value="Handstand Push Up">Handstand Push Up</option>
-            <option value="Human Flag">Human Flag</option>
-            <option value="Front Lever">Front Lever</option>
-            <option value="Muscle Up">Muscle Up</option>
-            <option value="__custom_reps__">Other... (Reps)</option>
-            <option value="__custom_hold__">Other... (Hold)</option>
-
-          </select>
+          <div class="exercise-autocomplete">
+            <input
+              id="dashboard-exercise"
+              type="text"
+              placeholder="Search for an exercise..."
+              autocomplete="off"
+            />
+            <ul id="dashboard-exercise-suggestions" class="exercise-suggestions-dashboard"></ul>
+          </div>
 
           <input
             id="custom-exercise"
@@ -383,7 +374,13 @@ async function searchExercises(query) {
     return [];
   }
 
-  return data || [];
+  // Dédupliquer par nom (garder le premier de chaque nom unique)
+  const seen = new Set();
+  return (data || []).filter(ex => {
+    if (seen.has(ex.name)) return false;
+    seen.add(ex.name);
+    return true;
+  });
 }
 
 
@@ -450,15 +447,9 @@ function isHoldExercise(name) {
 }
 
 function getSelectedExerciseName() {
-  const exerciseSelect = document.getElementById("dashboard-exercise");
-  const customInput = document.getElementById("custom-exercise");
-  if (!exerciseSelect) return "";
-
-  const v = exerciseSelect.value;
-  if (v === "__custom_reps__" || v === "__custom_hold__") {
-    return (customInput?.value || "").trim();
-  }
-  return v;
+  const exerciseInput = document.getElementById("dashboard-exercise");
+  if (!exerciseInput) return "";
+  return (exerciseInput.value || "").trim();
 }
 
 /* =========================================================
@@ -782,10 +773,25 @@ function createExerciseRow(data = {}) {
   // Fonction pour repositionner la dropdown
   function repositionDropdown() {
     if (dropdown.style.display !== "block") return;
-    const rect = input.getBoundingClientRect();
-    dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + 4}px`;
-    dropdown.style.width = `${rect.width}px`;
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // Sur mobile, utiliser position fixed avec calcul intelligent
+      const rect = input.getBoundingClientRect();
+      dropdown.style.position = "fixed";
+      dropdown.style.left = "10px";
+      dropdown.style.right = "10px";
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.width = "auto";
+    } else {
+      // Sur desktop, utiliser position fixed
+      const rect = input.getBoundingClientRect();
+      dropdown.style.position = "fixed";
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.width = `${rect.width}px`;
+      dropdown.style.right = "auto";
+    }
   }
 
   input.addEventListener("input", async () => {
@@ -801,12 +807,27 @@ function createExerciseRow(data = {}) {
     const results = await searchExercises(value);
     if (!results.length) return;
 
-    const rect = input.getBoundingClientRect();
-
-    dropdown.style.left = `${rect.left}px`;
-    dropdown.style.top = `${rect.bottom + 4}px`;
-    dropdown.style.width = `${rect.width}px`;
     dropdown.style.display = "block";
+    
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      // Sur mobile, utiliser position fixed avec marges
+      const rect = input.getBoundingClientRect();
+      dropdown.style.position = "fixed";
+      dropdown.style.left = "10px";
+      dropdown.style.right = "10px";
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.width = "auto";
+    } else {
+      // Sur desktop, utiliser position fixed
+      const rect = input.getBoundingClientRect();
+      dropdown.style.position = "fixed";
+      dropdown.style.left = `${rect.left}px`;
+      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.width = `${rect.width}px`;
+      dropdown.style.right = "auto";
+    }
 
     results.forEach(ex => {
       const li = document.createElement("li");
@@ -1119,11 +1140,11 @@ async function deleteSessionByDate(date) {
 let exerciseChart = null;
 
 function updateMetricOptions() {
-  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const exerciseInput = document.getElementById("dashboard-exercise");
   const metricSelect = document.getElementById("dashboard-metric");
-  if (!exerciseSelect || !metricSelect) return;
+  if (!exerciseInput || !metricSelect) return;
 
-  const exName = exerciseSelect.value;
+  const exName = (exerciseInput.value || "").trim();
   metricSelect.innerHTML = "";
 
   let options = [];
@@ -1310,7 +1331,6 @@ async function renderExerciseChart() {
   const metricKey = metricSelect.value;
 
   // Persist UI choices locally
-  localStorage.setItem("last-selected-exercise-select", exerciseSelect.value);
   localStorage.setItem("last-selected-exercise", exerciseName);
   localStorage.setItem("last-selected-metric", metricKey);
 
@@ -1359,37 +1379,18 @@ async function renderExerciseChart() {
 }
 
 async function initDashboard() {
-  const exerciseSelect = document.getElementById("dashboard-exercise");
+  const exerciseInput = document.getElementById("dashboard-exercise");
   const metricSelect = document.getElementById("dashboard-metric");
-  if (!exerciseSelect || !metricSelect) return;
+  const dropdown = document.getElementById("dashboard-exercise-suggestions");
+  
+  if (!exerciseInput || !metricSelect) return;
 
-  const customInput = document.getElementById("custom-exercise");
-
-  // restore select
-  const savedSelect = localStorage.getItem("last-selected-exercise-select");
-  if (savedSelect) {
-    const exists = Array.from(exerciseSelect.options).some(o => o.value === savedSelect);
-    if (exists) exerciseSelect.value = savedSelect;
+  // Restore last selection
+  const savedExercise = localStorage.getItem("last-selected-exercise");
+  if (savedExercise) {
+    exerciseInput.value = savedExercise;
   }
 
-  function syncCustomUI() {
-    if (!customInput) return;
-    const isCustom = (exerciseSelect.value === "__custom_reps__" || exerciseSelect.value === "__custom_hold__");
-    customInput.style.display = isCustom ? "block" : "none";
-
-    if (isCustom) {
-      const key = (exerciseSelect.value === "__custom_hold__")
-        ? "custom-hold-exercise-name"
-        : "custom-reps-exercise-name";
-      const savedName = localStorage.getItem(key) || "";
-      if (!customInput.value) customInput.value = savedName;
-    } else {
-      // optional: keep value, or clear:
-      // customInput.value = "";
-    }
-  }
-
-  syncCustomUI();
   updateMetricOptions();
 
   const savedMetric = localStorage.getItem("last-selected-metric");
@@ -1400,27 +1401,94 @@ async function initDashboard() {
 
   await renderExerciseChart();
 
-  // listeners (async-safe)
-  exerciseSelect.addEventListener("change", async () => {
-    syncCustomUI();
-    updateMetricOptions();
-    await renderExerciseChart();
+  // Autocomplete search
+  let lastQuery = "";
+
+  function repositionDashboardDropdown() {
+    if (dropdown.style.display !== "block") return;
+    const rect = exerciseInput.getBoundingClientRect();
+    const dropdownWidth = 330;
+    const viewportWidth = window.innerWidth;
+    
+    let left = rect.left;
+    if (left + dropdownWidth > viewportWidth - 10) {
+      left = Math.max(10, viewportWidth - dropdownWidth - 10);
+    }
+    
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.width = `${Math.min(dropdownWidth, rect.width)}px`;
+  }
+
+  exerciseInput.addEventListener("input", async () => {
+    const value = exerciseInput.value.trim();
+
+    exerciseInput.dataset.isHold = "";
+    dropdown.innerHTML = "";
+    dropdown.style.display = "none";
+
+    if (!value || value === lastQuery) return;
+    lastQuery = value;
+
+    const results = await searchExercises(value);
+    if (!results.length) return;
+
+    const rect = exerciseInput.getBoundingClientRect();
+    const dropdownWidth = 330;
+    const viewportWidth = window.innerWidth;
+    
+    let left = rect.left;
+    if (left + dropdownWidth > viewportWidth - 10) {
+      left = Math.max(10, viewportWidth - dropdownWidth - 10);
+    }
+    
+    dropdown.style.left = `${left}px`;
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.width = `${Math.min(dropdownWidth, rect.width)}px`;
+    dropdown.style.display = "block";
+
+    results.forEach(ex => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>${ex.name}</span>
+        <span style="opacity:.6;font-size:12px;margin-left:6px;">
+          ${ex.mode}
+        </span>
+      `;
+
+      li.addEventListener("click", async () => {
+        exerciseInput.value = ex.name;
+        exerciseInput.dataset.isHold = (ex.mode === "hold") ? "true" : "false";
+        dropdown.style.display = "none";
+        updateMetricOptions();
+        await renderExerciseChart();
+      });
+
+      dropdown.appendChild(li);
+    });
   });
 
+  // Reposition on scroll or resize
+  window.addEventListener("scroll", repositionDashboardDropdown, true);
+  window.addEventListener("resize", repositionDashboardDropdown);
+
+  // Close dropdown on click elsewhere
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target) && e.target !== exerciseInput) {
+      dropdown.style.display = "none";
+    }
+  });
+
+  // listeners for changes
   metricSelect.addEventListener("change", async () => {
     await renderExerciseChart();
   });
 
-  if (customInput) {
-    customInput.addEventListener("input", async () => {
-      const name = (customInput.value || "").trim();
-      const key = (exerciseSelect.value === "__custom_hold__")
-        ? "custom-hold-exercise-name"
-        : "custom-reps-exercise-name";
-      localStorage.setItem(key, name);
-      await renderExerciseChart();
-    });
-  }
+  exerciseInput.addEventListener("blur", async () => {
+    localStorage.setItem("last-selected-exercise", exerciseInput.value);
+    updateMetricOptions();
+    await renderExerciseChart();
+  });
 }
 
 function initStructuredLog() {
@@ -1874,13 +1942,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   initStructuredLog();
   loadPosts();
   bindAutoSaveButton();
-
-  // restore dashboard state
-  const exerciseSelect = document.getElementById("dashboard-exercise");
-  const savedSelect = localStorage.getItem("last-selected-exercise-select");
-  if (savedSelect && exerciseSelect) {
-    exerciseSelect.value = savedSelect;
-  }
 
   // init dashboard (sets listeners + first render)
   await initDashboard();

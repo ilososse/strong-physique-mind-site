@@ -852,64 +852,80 @@ button:disabled {
   width: 100%;
 }
 
+/* Styles communs pour toutes les dropdown suggestions */
+.exercise-suggestions,
+.exercise-suggestions-global,
+.exercise-suggestions-dashboard {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
 .exercise-suggestions {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
   z-index: 1000;
-
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-
-  max-height: 220px;
-  overflow-y: auto;
-
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
-
-.exercise-suggestions li {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.exercise-suggestions li:hover {
-  background: #f5f5f5;
-}
-
 
 .exercise-suggestions-global {
-  position: fixed; /* 🔥 clé */
+  position: fixed;
   z-index: 9999;
-
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-
-  max-height: 240px;
-  overflow-y: auto;
-
   display: none;
 }
 
-.exercise-suggestions-global li {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
+.exercise-suggestions-dashboard {
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  max-width: 330px;
 }
 
-.exercise-suggestions-global li:hover {
+/* Mobile: améliorer le positionnement */
+@media (max-width: 768px) {
+  .exercise-suggestions-global,
+  .exercise-suggestions-dashboard {
+    position: fixed !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+    bottom: auto !important;
+    margin-top: 0 !important;
+    max-height: 200px !important;
+  }
+
+  .exercise-autocomplete {
+    position: relative;
+  }
+}
+
+/* Items communs pour toutes les dropdown */
+.exercise-suggestions li,
+.exercise-suggestions-global li,
+.exercise-suggestions-dashboard li {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.exercise-suggestions li:hover,
+.exercise-suggestions-global li:hover,
+.exercise-suggestions-dashboard li:hover {
   background: #f5f5f5;
 }
+
+.exercise-suggestions-dashboard li {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 
