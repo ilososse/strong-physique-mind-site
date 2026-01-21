@@ -787,6 +787,16 @@ function createExerciseRow(data = {}) {
     dropdown.style.top = `${rect.bottom + 4}px`;
   }
 
+  // Repositionner lors de resize (inclut le clavier mobile qui change la viewport)
+  const resizeListener = () => {
+    if (dropdown.style.display === "block") {
+      positionDropdown();
+    }
+  };
+  
+  window.addEventListener("resize", resizeListener);
+  window.addEventListener("orientationchange", resizeListener);
+
   // Préserve le mode si déjà connu (édition / historique)
   if (data.mode) {
     input.dataset.mode = data.mode;
