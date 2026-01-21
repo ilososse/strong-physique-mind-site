@@ -25,6 +25,7 @@
 <script src="js/header.js"></script>
 
 <body>
+<ul id="global-exercise-suggestions" class="exercise-suggestions-global"></ul>
 
 <header class="site-header">
   <a href="/" class="logo">
@@ -375,11 +376,12 @@ async function searchExercises(query) {
     return [];
   }
 
-  // Dédupliquer par nom (garder le premier de chaque nom unique)
+  // Dédupliquer par (nom + mode) pour éviter les doublons exacts
   const seen = new Set();
   return (data || []).filter(ex => {
-    if (seen.has(ex.name)) return false;
-    seen.add(ex.name);
+    const key = `${ex.name}__${ex.mode}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }
@@ -760,14 +762,10 @@ function createExerciseRow(data = {}) {
 
   const input = tr.querySelector(".ex-name");
   const removeBtn = tr.querySelector(".remove-row-btn");
-  
-  // Créer le dropdown en tant que global, placé au body
-  const dropdown = document.createElement("ul");
-  dropdown.className = "exercise-suggestions-row";
-  dropdown.style.display = "none";
-  document.body.appendChild(dropdown);
+  const dropdown = document.getElementById("global-exercise-suggestions");
   
   function positionDropdown() {
+    if (dropdown.style.display !== "block") return;
     const rect = input.getBoundingClientRect();
     const isMobile = window.innerWidth <= 768;
     
@@ -787,15 +785,15 @@ function createExerciseRow(data = {}) {
     dropdown.style.top = `${rect.bottom + 4}px`;
   }
 
-  // Repositionner lors de resize (inclut le clavier mobile qui change la viewport)
-  const resizeListener = () => {
-    if (dropdown.style.display === "block") {
-      positionDropdown();
-    }
-  };
+  // Repositionner lors de resize
+  const resizeListener = () => positionDropdown();
+  
+  // Repositionner lors du scroll
+  const scrollListener = () => positionDropdown();
   
   window.addEventListener("resize", resizeListener);
   window.addEventListener("orientationchange", resizeListener);
+  window.addEventListener("scroll", scrollListener, true);
 
   // Préserve le mode si déjà connu (édition / historique)
   if (data.mode) {
