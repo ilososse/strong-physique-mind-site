@@ -1,5 +1,5 @@
 /* =========================================================
-   CalisthenicsAmbition – entrainements.html (FULL SCRIPT)
+   CalisthenicsAmbition – entrainements-en.js (FULL SCRIPT)
    - Supabase v2 via window.supabaseClient (déjà créé dans <head>)
    - Smooth UI: cache sessions + scheduler + anti double-render chart
    ========================================================= */
