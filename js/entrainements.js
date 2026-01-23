@@ -755,8 +755,8 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                         onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
                         title="Supprimer cette série"
                         style="
-                          background:#ffcccc;
-                          color:#900;
+                          background:#e57373;
+                          color:white;
                           border:none;
                           border-radius:50%;
                           width:14px;
@@ -783,8 +783,8 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                         onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
                         title="Supprimer cette série"
                         style="
-                          background:#ffcccc;
-                          color:#900;
+                          background:#e57373;
+                          color:white;
                           border:none;
                           border-radius:50%;
                           width:14px;
