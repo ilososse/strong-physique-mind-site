@@ -361,6 +361,34 @@ function normalizeExerciseName(str) {
     .trim();
 }
 
+// 🌐 Table de traduction FR ↔ EN pour fusionner les données
+const EXERCISE_TRANSLATIONS = {
+  // FR → EN (canonical)
+  "pompes": "push ups",
+  "tractions": "pull ups",
+  "dips": "dips",
+  "muscle up": "muscle up",
+  "handstand push up": "handstand push up",
+  "planche lean": "planche lean",
+  "tuck planche": "tuck planche",
+  "straddle planche": "straddle planche",
+  "full planche": "full planche",
+  "handstand": "handstand",
+  "one arm handstand": "one arm handstand",
+  "human flag": "human flag",
+  "front lever": "front lever",
+  "squat": "squat",
+  "pistol squat": "pistol squat",
+  "gainage": "plank",
+  "planche": "plank"
+};
+
+// Normalise le nom d'exercice vers sa forme canonique (anglais)
+function getCanonicalExerciseName(name) {
+  const normalized = normalizeExerciseName(name);
+  return EXERCISE_TRANSLATIONS[normalized] || normalized;
+}
+
 async function searchExercises(query) {
   const q = normalizeExerciseName(query);
   if (!q) return [];
@@ -429,27 +457,6 @@ async function getAuthedUserOrWarn(infoEl) {
 }
 
 /* ---------- EXERCISES ---------- */
-
-const REPS_EXERCISES = [
-  "Tractions","Pompes","Dips","Handstand Push Up","Muscle Up",
-];
-
-const HOLD_EXERCISES = [
-  "Planche lean","Tuck planche","Straddle planche","Full planche",
-  "Handstand","One Arm Handstand","Human Flag","Front Lever",
-];
-
-function isCustomHoldSelected() {
-  const exerciseInput = document.getElementById("dashboard-exercise");
-  // Vérifier si l'input contient un exercice hold ou si le dernier accès était hold
-  const value = exerciseInput?.value || "";
-  return exerciseInput?.dataset?.isHold === "true" || HOLD_EXERCISES.includes(value);
-}
-
-function isHoldExercise(name) {
-  if (isCustomHoldSelected()) return true;
-  return HOLD_EXERCISES.includes(name);
-}
 
 function getSelectedExerciseName() {
   const exerciseInput = document.getElementById("dashboard-exercise");
@@ -902,8 +909,8 @@ const name = row.querySelector(".ex-name")?.value.trim() || "";
 let mode = row.querySelector(".ex-name")?.dataset?.mode;
 
 if (!mode) {
-  // fallback si exercice inconnu / custom
-  mode = isHoldExercise(name) ? "hold" : "reps";
+  // fallback si exercice inconnu / custom → reps par défaut
+  mode = "reps";
 }
 
 
@@ -1028,10 +1035,12 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
         (s.exercises || []).forEach(ex => {
           const weight = Number(ex.weight || 0);
           const assist = Number(ex.assist || 0);
-          const key = `${ex.name}__${weight}__${assist}`;
+          // Utiliser le nom canonique pour grouper FR/EN ensemble
+          const canonicalName = getCanonicalExerciseName(ex.name);
+          const key = `${canonicalName}__${weight}__${assist}`;
           if (!exoMap.has(key)) {
             exoMap.set(key, {
-              name: ex.name,
+              name: ex.name, // Conserver le nom original pour l'affichage
               mode: ex.mode,
               weight,
               assist,
@@ -1137,12 +1146,12 @@ function updateMetricOptions() {
   const metricSelect = document.getElementById("dashboard-metric");
   if (!exerciseInput || !metricSelect) return;
 
-  const exName = (exerciseInput.value || "").trim();
   metricSelect.innerHTML = "";
 
   let options = [];
 
-  if (isHoldExercise(exName)) {
+  // Utilise le dataset pour déterminer le type d'exercice
+  if (exerciseInput.dataset.isHold === "true") {
     options = [
       { value: "avg_hold", label: "Moyenne des holds" },
       { value: "max_hold", label: "Max des holds" },
@@ -1180,10 +1189,14 @@ async function buildChartData(exerciseName, metricKey) {
   // 2) Collecter toutes les variantes (weight + assist) pour cet exercice
   const variantMap = new Map(); // clé: "weight__assist", valeur: { weight, assist, dateData: Map }
 
+  // Normaliser le nom d'exercice recherché
+  const canonicalExerciseName = getCanonicalExerciseName(exerciseName);
+
   Array.from(byDate.entries()).forEach(([date, daySessions]) => {
     daySessions.forEach(s => {
       const exercises = s.exercises || [];
-      const matching = exercises.filter(ex => ex.name === exerciseName);
+      // Comparer avec le nom canonique
+      const matching = exercises.filter(ex => getCanonicalExerciseName(ex.name) === canonicalExerciseName);
 
       matching.forEach(ex => {
         const weight = Number(ex.weight || 0);
@@ -1211,6 +1224,21 @@ async function buildChartData(exerciseName, metricKey) {
         variant.dateData.get(date).push(...nums);
       });
     });
+  });
+
+  // 2.5) Détecter le mode de l'exercice depuis les sessions
+  let exerciseMode = "reps"; // par défaut
+  Array.from(variantMap.values()).some(variant => {
+    // Chercher le mode dans les sessions
+    sessions.some(s => {
+      const ex = (s.exercises || []).find(e => e.name === exerciseName);
+      if (ex?.mode) {
+        exerciseMode = ex.mode;
+        return true;
+      }
+      return false;
+    });
+    return exerciseMode !== "reps";
   });
 
   // 3) Créer les labels (dates uniques) ET identifier les dates avec données
@@ -1248,7 +1276,7 @@ async function buildChartData(exerciseName, metricKey) {
 
       let pointValue = 0;
 
-      if (isHoldExercise(exerciseName)) {
+      if (exerciseMode === "hold") {
         const sum = values.reduce((a, b) => a + b, 0);
         const avg = sum / values.length;
         const max = Math.max(...values);
@@ -1380,8 +1408,13 @@ async function initDashboard() {
 
   // Restaurer la dernière sélection
   const savedExercise = localStorage.getItem("last-selected-exercise");
+  const savedMode = localStorage.getItem("last-selected-mode");
   if (savedExercise) {
     exerciseInput.value = savedExercise;
+    // Restaurer le mode pour afficher les bonnes métriques
+    if (savedMode) {
+      exerciseInput.dataset.isHold = (savedMode === "hold") ? "true" : "false";
+    }
   }
 
   updateMetricOptions();
@@ -1453,6 +1486,8 @@ async function initDashboard() {
         exerciseInput.value = ex.name;
         exerciseInput.dataset.isHold = (ex.mode === "hold") ? "true" : "false";
         dropdown.style.display = "none";
+        // Sauvegarder le mode pour restauration au rechargement
+        localStorage.setItem("last-selected-mode", ex.mode);
         updateMetricOptions();
         await renderExerciseChart();
       });
