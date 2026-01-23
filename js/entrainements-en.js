@@ -751,7 +751,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                         onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
                         title="Delete this set"
                         style="
-                          background:#ff4444;
+                          background:#e57373;
                           color:white;
                           border:none;
                           border-radius:50%;
@@ -779,7 +779,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                         onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
                         title="Delete this set"
                         style="
-                          background:#ff4444;
+                          background:#e57373;
                           color:white;
                           border:none;
                           border-radius:50%;
