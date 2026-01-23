@@ -1069,7 +1069,6 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
           <ul class="session-card-exos">
             ${Array.from(exoMap.values()).map(ex => {
               const unit = ex.mode === "hold" ? "s" : "reps";
-              const series = ex.values.join(" / ");
               const ressenti = ex.ressenti.length
                 ? ` – ${escapeHtml(ex.ressenti[ex.ressenti.length - 1])}`
                 : "";
@@ -1078,11 +1077,74 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
               const assistLabel =
               ex.assist > 0 ? ` (-${ex.assist}kg)` : "";
 
+              // Display values with buttons, last button after unit
+              const valuesWithButtons = ex.values.map((val, idx) => {
+                const isLast = idx === ex.values.length - 1;
+                if (isLast) {
+                  // Last: value + unit + button
+                  return `
+                    <span style="display:inline-flex;align-items:center;gap:3px;">
+                      ${escapeHtml(String(val))} ${unit}
+                      <button 
+                        class="remove-set-btn" 
+                        type="button"
+                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        title="Delete this set"
+                        style="
+                          background:#ff4444;
+                          color:white;
+                          border:none;
+                          border-radius:50%;
+                          width:14px;
+                          height:14px;
+                          font-size:10px;
+                          line-height:1;
+                          cursor:pointer;
+                          padding:0;
+                          display:inline-flex;
+                          align-items:center;
+                          justify-content:center;
+                        "
+                      >−</button>
+                    </span>
+                  `;
+                } else {
+                  // Others: value + button
+                  return `
+                    <span style="display:inline-flex;align-items:center;gap:3px;">
+                      ${escapeHtml(String(val))}
+                      <button 
+                        class="remove-set-btn" 
+                        type="button"
+                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        title="Delete this set"
+                        style="
+                          background:#ff4444;
+                          color:white;
+                          border:none;
+                          border-radius:50%;
+                          width:14px;
+                          height:14px;
+                          font-size:10px;
+                          line-height:1;
+                          cursor:pointer;
+                          padding:0;
+                          display:inline-flex;
+                          align-items:center;
+                          justify-content:center;
+                        "
+                      >−</button>
+                    </span>
+                  `;
+                }
+              }).join(" / ");
+
+              const seriesHtml = valuesWithButtons;
 
               return `
                 <li>
                   ${escapeHtml(ex.name)}${weightLabel}${assistLabel}
-                  ${series ? ` – ${escapeHtml(series)} ${unit}` : ""}
+                  ${seriesHtml ? ` – ${seriesHtml}` : ""}
                   ${ressenti}
                 </li>
               `;
@@ -1127,6 +1189,95 @@ async function deleteSessionByDate(date) {
 
   info.textContent = "✅ Sessions for the day deleted";
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+}
+
+async function removeSetFromHistory(date, exerciseName, weight, assist, setIndex) {
+  const info = document.getElementById("session-save-info");
+  const user = await getAuthedUserOrWarn(info);
+  if (!user) return;
+
+  info && (info.textContent = "⏳ Deleting...");
+
+  // 1) Fetch all sessions for this day
+  const { data: sessions, error: fetchError } = await supabaseClient
+    .from("workout_sessions")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("session_date", date);
+
+  if (fetchError || !sessions?.length) {
+    console.error(fetchError);
+    info && (info.textContent = "❌ Fetch error");
+    return;
+  }
+
+  // 2) Browse and modify
+  let removed = false;
+
+  for (const session of sessions) {
+    const exercises = session.payload?.exercises || [];
+    
+    for (const ex of exercises) {
+      if (ex.name !== exerciseName) continue;
+      if (Number(ex.weight || 0) !== Number(weight)) continue;
+      if (Number(ex.assist || 0) !== Number(assist)) continue;
+
+      // Collect all sets
+      const allSets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+        .map(v => v !== "" && v !== null && v !== undefined ? v : null);
+
+      // Find non-empty values
+      const nonEmptyIndices = [];
+      allSets.forEach((val, idx) => {
+        if (val !== null) nonEmptyIndices.push(idx);
+      });
+
+      // If the index to delete exists
+      if (setIndex < nonEmptyIndices.length) {
+        const realIndex = nonEmptyIndices[setIndex];
+        allSets[realIndex] = null;
+
+        // Compact: move remaining values to the beginning
+        const compacted = allSets.filter(v => v !== null);
+        
+        // If no sets remain, delete the exercise completely
+        if (compacted.length === 0) {
+          const exIndex = exercises.indexOf(ex);
+          if (exIndex > -1) {
+            exercises.splice(exIndex, 1);
+          }
+        } else {
+          // Otherwise, update the sets
+          [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8] = 
+            [...compacted, "", "", "", "", "", "", "", ""].slice(0, 8);
+        }
+
+        removed = true;
+        break;
+      }
+    }
+
+    if (removed) {
+      // 3) Save modified session
+      const { error: updateError } = await supabaseClient
+        .from("workout_sessions")
+        .update({ payload: session.payload })
+        .eq("id", session.id);
+
+      if (updateError) {
+        console.error(updateError);
+        info && (info.textContent = "❌ Update error");
+        return;
+      }
+
+      info && (info.textContent = "✅ Set deleted");
+      delete window.__sessionsCache;
+      scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+      return;
+    }
+  }
+
+  info && (info.textContent = "⚠️ Set not found");
 }
 
 /* =========================================================
