@@ -47,11 +47,46 @@ function getCanonicalExerciseName(name) {
   return EXERCISE_TRANSLATIONS[normalized] || normalized;
 }
 
+const CUSTOM_EXOS_KEY = "recent-custom-exercises";
+const MAX_CUSTOM_EXOS = 25;
+
+function loadCustomExercises() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_EXOS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomExercise({ name, mode }) {
+  if (!name) return;
+
+  const normalized = normalizeExerciseName(name);
+  let list = loadCustomExercises();
+
+  // Déjà présent → on remonte en tête
+  list = list.filter(ex => ex.name_normalized !== normalized);
+
+  list.unshift({
+    name,
+    name_normalized: normalized,
+    mode,
+    lastUsedAt: Date.now()
+  });
+
+  // Limite la taille
+  list = list.slice(0, MAX_CUSTOM_EXOS);
+
+  localStorage.setItem(CUSTOM_EXOS_KEY, JSON.stringify(list));
+}
+
+
 async function searchExercises(query) {
   const q = normalizeExerciseName(query);
   if (!q) return [];
 
-  const { data, error } = await supabaseClient
+  // 1️⃣ OFFICIELS
+  const { data: official, error } = await supabaseClient
     .from("exercises")
     .select("id, name, mode")
     .ilike("name_normalized", `%${q}%`)
@@ -59,18 +94,30 @@ async function searchExercises(query) {
 
   if (error) {
     console.error("[searchExercises]", error);
-    return [];
   }
 
-  // Dédupliquer par (nom + mode) pour éviter les doublons exacts
+  // 2️⃣ CUSTOM (localStorage)
+  const custom = loadCustomExercises()
+    .filter(ex => ex.name_normalized.includes(q))
+    .map(ex => ({
+      id: "custom",
+      name: ex.name,
+      mode: ex.mode,
+      isCustom: true
+    }));
+
+  // 3️⃣ Fusion + déduplication
   const seen = new Set();
-  return (data || []).filter(ex => {
-    const key = `${ex.name}__${ex.mode}`;
+  const merged = [...(official || []), ...custom].filter(ex => {
+    const key = `${normalizeExerciseName(ex.name)}__${ex.mode}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+
+  return merged;
 }
+
 
 
 function userIdToNumber1to1000(userId) {
@@ -492,9 +539,10 @@ function createExerciseRow(data = {}) {
       li.innerHTML = `
         <span>${ex.name}</span>
         <span style="opacity:.6;font-size:12px;margin-left:6px;">
-          ${ex.mode}
+          ${ex.mode}${ex.isCustom ? " • perso" : ""}
         </span>
       `;
+
 
       li.addEventListener("click", () => {
         input.value = ex.name;
@@ -570,6 +618,12 @@ if (!mode) {
   // fallback si exercice inconnu / custom → reps par défaut
   mode = "reps";
 }
+
+// 🧠 mémoriser les exos custom (pas dans la base officielle)
+if (!row.querySelector(".ex-name")?.dataset?.mode && name) {
+  saveCustomExercise({ name, mode });
+}
+
 
 
     const weight = row.querySelector(".ex-weight")?.value || "0";
@@ -1287,9 +1341,10 @@ async function initDashboard() {
       li.innerHTML = `
         <span>${ex.name}</span>
         <span style="opacity:.6;font-size:12px;margin-left:6px;">
-          ${ex.mode}
+          ${ex.mode}${ex.isCustom ? " • perso" : ""}
         </span>
       `;
+
 
       li.addEventListener("click", async () => {
         exerciseInput.value = ex.name;
