@@ -6,20 +6,23 @@
 - On peut imaginer un système de note du ressenti de chaque exercice
 - Uniformiser la police d'écriture dans la page principale 
 - Ajouter des front lever raises (dur mais super exercice pour avoir le front)
-- Ajouter colonne poids pour pouvoir lier performance et poids 
+- Ajouter colonne poids pour pouvoir lier performance et poids - bof 
 - Documenter les facteurs qui influencent la performance (poids, taille, diététique et sommeil)
-- URGENT : RENDRE LES SEANCES DANS l'HISTORIQUE MODIFIABLES POUR POUVOIR PLANIFIER LES SEANCES !
-  OU ALORS : Prévoir un espace dans la page pour y mettre le sessions futurs qu'avec les noms des exercices à faire
-
--Il me manque des photos pour rendre le site plus joli et moins imbitable 
+- Il me manque des photos pour rendre le site plus joli et moins imbitable 
 
 Idées outils automatisés ML - plus orienté application: 
 - Système IA de dénombrement du nombre de rép à partir d'une vidéo -> PULL UP INTEGRE ! PUSH UP - DIPS - HANDSTAND TRACKING
-- Harmonisation entre sessions locales et sessions centralisées dans la base de données
+- Harmonisation entre sessions locales et sessions centralisées dans la base de données -> Fait hehe
 - Système IA de note de la forme d'un exercice exécuté (exemple note de 1 à 10 d'un handstand, d'une planche, d'un frontlever, pompe ...)
 
 TODO : idée : MERGE deux ou plusieurs sessions appartenant au même jour pour éviter d'ajouter autant de sessions que d'exercices !
 AJOUTER DES ETOILES POUR LINTENSITE à coté de chaque exo (utile pour faire un scoring plus fin)
-Faire les merges au niveau du site caliambition
+Faire les merges au niveau du site caliambition -> fait
 
-IDEE SUPER IMPORTANTE : PERMETTRE A l'UTILISATEUR D'AJOUTER DES EXOS A LA BASE DE DONNEES POUR QUE CA SOIT VISIBLE PAR LUI AUTOMATIQUEMENT.
+IDEE SUPER IMPORTANTE : PERMETTRE A l'UTILISATEUR D'AJOUTER DES EXOS A LA BASE DE DONNEES POUR QUE CA SOIT VISIBLE PAR LUI AUTOMATIQUEMENT. -> fait 
+
+EDIT NEW todos:
+- Système de feedback IA (notes, angles clés, voire conseils + validation par expert si besoin $$)
+- Créer espace profil où on a accès à un résumé avec un polygone (cf. discussion ia) -> force, explosivité, endurance
+- Créer un système de ligue ou de niveau à la League of Legends, le principe -> améliorer ses perfs à travers l'appli 
+- je reflechis à réduire le feed seulement aux performances enregistrées par l'outil de tracking
