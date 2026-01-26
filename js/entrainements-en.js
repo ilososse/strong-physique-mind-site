@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    CalisthenicsAmbition – entrainements-en.js (FULL SCRIPT)
    - Supabase v2 via window.supabaseClient (déjà créé dans <head>)
    - Smooth UI: cache sessions + scheduler + anti double-render chart
@@ -707,7 +707,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
 
   if (!user) {
     container.innerHTML =
-      "<p style='font-size:12px; color:#777;'>Connecte-toi pour voir tes séances.</p>";
+      "<p style='font-size:12px; color:#777;'>Log in to see your sessions.</p>";
     return;
   }
 
@@ -717,11 +717,11 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
 
   if (!rawSessions.length) {
     container.innerHTML =
-      "<p style='font-size:12px; color:#777;'>Aucune séance enregistrée pour l’instant.</p>";
+      "<p style='font-size:12px; color:#777;'>No sessions recorded yet.</p>";
     return;
   }
 
-  // 1) Grouper par DATE
+  // 1) Group by DATE
   const byDate = new Map();
   rawSessions.forEach(s => {
     if (!s.date) return;
@@ -731,12 +731,12 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
 
   let html = "";
 
-  // 2) Une carte par JOUR
+  // 2) One card per DAY
   Array.from(byDate.entries())
     .sort((a, b) => new Date(b[0]) - new Date(a[0]))
     .forEach(([date, daySessions]) => {
 
-      // 3) Merge par (name + weight)
+      // 3) Merge by (name + weight)
       const exoMap = new Map();
 
       daySessions.forEach(s => {
@@ -897,7 +897,7 @@ async function deleteSessionByDate(date) {
 
   if (error) {
     console.error(error);
-    info.textContent = "❌ Erreur suppression";
+    info.textContent = "❌ Deletion error";
     return;
   }
 
@@ -1411,7 +1411,7 @@ function savePost(id) {
   if (!textarea) return;
   localStorage.setItem(key, textarea.value);
   const now = new Date().toLocaleString();
-  if (info) info.textContent = "Enregistré le " + now + ".";
+  if (info) info.textContent = "Saved on " + now + ".";
 }
 
 function resetPost(id) {
@@ -1481,10 +1481,10 @@ async function initUsernameUI() {
   const input = document.getElementById("public-username");
   if (!input) return;
 
-  // état par défaut : verrouillé
+  // Default state: locked
   input.disabled = true;
   input.value = "";
-  input.title = "Connecte-toi pour définir ton pseudo";
+  input.title = "Log in to set your username";
 
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
@@ -1506,17 +1506,17 @@ async function initUsernameUI() {
     return;
   }
 
-  // 🔒 pseudo déjà défini
+  // 🔒 Username already set
   if (profile?.username) {
     input.value = profile.username;
     input.disabled = true;
-    input.title = "Pseudo définitif";
+    input.title = "Username is permanent";
   } 
-  // ✅ connecté mais pas encore de pseudo
+  // ✅ Logged in but no username yet
   else {
     input.disabled = false;
-    input.placeholder = "ex: cali_ambition";
-    input.title = "Choisis ton pseudo (une seule fois)";
+    input.placeholder = "e.g.: cali_ambition";
+    input.title = "Choose your username (one time only)";
   }
 }
 
@@ -1578,11 +1578,11 @@ function renderFeedItem(s, currentUserId) {
       </div>
 
       <div style="font-size:12px;color:#666;margin-top:4px;">
-        Durée: ${escapeHtml(String(s.payload?.duration || ""))} min
+        Duration: ${escapeHtml(String(s.payload?.duration || ""))} min
       </div>
 
       <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
-        ${exList || "<li>(séance vide)</li>"}
+        ${exList || "<li>(empty session)</li>"}
       </ul>
 
       ${canDelete ? `
@@ -1639,7 +1639,7 @@ async function loadPublicFeed({ force = false } = {}) {
       );
 
       if (error) {
-        commit(`<div style="font-size:13px;color:#a00;">Erreur feed: ${escapeHtml(error.message)}</div>`);
+        commit(`<div style="font-size:13px;color:#a00;">Feed error: ${escapeHtml(error.message)}</div>`);
         return;
       }
 
@@ -1674,11 +1674,11 @@ async function deleteSession(sessionId) {
     .eq("id", sessionId);
 
   if (error) {
-    uiInfo("Erreur suppression : " + error.message);
+    uiInfo("Deletion error: " + error.message);
     return;
   }
 
-  uiInfo("Séance supprimée.");
+  uiInfo("Session deleted.");
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
@@ -1688,7 +1688,7 @@ async function saveUsername() {
 
   const { data: authData } = await supabaseClient.auth.getUser();
   const user = authData?.user;
-  if (!user) return uiInfo("Tu dois être connecté pour enregistrer ton pseudo.");
+  if (!user) return uiInfo("You must be logged in to save your username.");
 
   const inputUsername = document.getElementById("public-username")?.value || "";
 
@@ -1696,10 +1696,10 @@ async function saveUsername() {
   try {
     username = await getOrCreateUsername(inputUsername);
   } catch (e) {
-    return uiInfo("Ce pseudo est déjà utilisé.");
+    return uiInfo("This username is already taken.");
   }
 
-  if (!username) return uiInfo("Choisis un pseudo (une seule fois).");
+  if (!username) return uiInfo("Choose a username (one time only).");
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
@@ -1710,12 +1710,12 @@ async function login() {
 
   const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
   const password = document.getElementById("auth-pass")?.value?.trim();
-  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+  if (!email || !password) return uiInfo("Email and password required.");
 
   const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) return uiInfo("Erreur login : " + error.message);
+  if (error) return uiInfo("Login error: " + error.message);
 
-  uiInfo("Connecté !");
+  uiInfo("Logged in!");
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
@@ -1724,13 +1724,13 @@ async function signup() {
 
   const email = document.getElementById("auth-email")?.value?.trim().toLowerCase();
   const password = document.getElementById("auth-pass")?.value?.trim();
-  if (!email || !password) return uiInfo("Email et mot de passe requis.");
+  if (!email || !password) return uiInfo("Email and password required.");
 
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
-  if (error) return uiInfo("Erreur inscription : " + error.message);
+  if (error) return uiInfo("Signup error: " + error.message);
 
-  if (data?.session) uiInfo("Inscription OK + connecté.");
-  else uiInfo("Inscription OK. Vérifie tes emails si confirmation requise.");
+  if (data?.session) uiInfo("Signup successful + logged in.");
+  else uiInfo("Signup successful. Check your emails if confirmation is required.");
 
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
@@ -1745,20 +1745,20 @@ async function logout() {
   btns.forEach(b => (b.disabled = true));
 
   try {
-    uiInfo("Déconnexion...");
+    uiInfo("Logging out...");
 
     const signOutPromise = supabaseClient.auth.signOut();
     const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT_SIGNOUT")), 1200));
     await Promise.race([signOutPromise, timeoutPromise]);
 
-    uiInfo("Déconnecté.");
+    uiInfo("Logged out.");
   } catch (e) {
     if (e?.message === "TIMEOUT_SIGNOUT") {
-      uiInfo("Déconnecté (UI). Rechargement...");
+      uiInfo("Logged out (UI). Reloading...");
       window.location.reload();
       return;
     }
-    uiInfo("Erreur logout : " + (e?.message || e));
+    uiInfo("Logout error: " + (e?.message || e));
   } finally {
     clearPrivateUI();
     scheduleUIRefresh({ forceSessions: true, forceFeed: true });
@@ -1801,7 +1801,7 @@ function bindAutoSaveButton() {
     const user = authData?.user;
 
     if (!user) {
-      alert("Tu dois être connecté pour utiliser l’outil LIVE.");
+      alert("You must be logged in to use the LIVE tool.");
       return;
     }
 
