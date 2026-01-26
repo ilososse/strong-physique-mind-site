@@ -464,13 +464,40 @@
   scroll-snap-align: start;
 }
 .session-card {
-
+  position: relative;
   font-size: 12px;
   line-height: 1.5;
-  background: #f5f5f5;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 12px;
+  background: linear-gradient(180deg, #fefcf8 0%, #fdf9f0 100%);
+  border: 1px solid #e8e0d0;
+  border-radius: 4px;
+  padding: 16px 14px 14px 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  /* Effet de papier avec lignes subtiles */
+  background-image: 
+    linear-gradient(180deg, #fefcf8 0%, #fdf9f0 100%),
+    repeating-linear-gradient(
+      transparent,
+      transparent 23px,
+      #e8dcc8 23px,
+      #e8dcc8 24px
+    );
+  background-blend-mode: normal;
+}
+
+/* Crayon en bas à droite des cartes (style brouillon) */
+.session-card::before {
+  content: none;
+}
+
+.session-card::after {
+  content: '✏️';
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 20px;
+  opacity: 0.6;
+  transform: rotate(-25deg);
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
 }
 
 
@@ -479,11 +506,16 @@
       flex-wrap: wrap;
       gap: 8px;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin: -16px -14px 10px -14px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #8b7355 0%, #6b5742 100%);
+      border-radius: 4px 4px 0 0;
+      color: white;
     }
 
     .session-card-header span.label {
       font-weight: 600;
+      color: white;
     }
 
     .session-card-exos {
