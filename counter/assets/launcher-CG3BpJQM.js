@@ -3799,7 +3799,7 @@ void main() {
   </button>
 `,o.querySelectorAll(".lang-flag").forEach(c=>{c.addEventListener("click",()=>{const h=c.dataset.lang;localStorage.setItem("lang",h),this.setLanguage(h),this._refreshExerciseSelectLabels()})}),s.appendChild(r),s.appendChild(o),e.appendChild(s),e.appendChild(t),e.appendChild(n),e.appendChild(s),(l=this.startButton)!=null&&l.parentElement?this.startButton.parentElement.insertBefore(e,this.startButton):this.startScreenOverlay.appendChild(e),this.exerciseSelect=n}_injectExerciseMenuLive(){var o;if(!this.renderDiv)return;const e=document.createElement("div");e.style.cssText=`
       position: absolute;
-      top: 65px;
+      top: 69px;
       right: 12px;
       z-index: 999999;
       display: none; /* affiché à Start */
@@ -3825,7 +3825,7 @@ void main() {
       cursor: pointer;
     `,Object.keys(this.EXERCISES).forEach(a=>{const l=document.createElement("option");l.value=a,l.textContent=this.getExerciseLabel(a),s.appendChild(l)}),s.value=((o=this.exercise)==null?void 0:o.name)||"Tractions",s.addEventListener("change",()=>this._handleExerciseSwitch(s.value)),t.appendChild(n),t.appendChild(s),e.appendChild(t),getComputedStyle(this.renderDiv).position==="static"&&(this.renderDiv.style.position="relative"),this.renderDiv.appendChild(e),this.liveMenuContainer=e}_injectBackButtonLive(){if(!this.renderDiv)return;const e=document.createElement("button");e.type="button",e.textContent="↩ Quitter",e.style.cssText=`
       position: absolute;
-      top: 65px;
+      top: 69px;
       left: 12px;
       z-index: 999999;
       display: none; /* affiché à Start */
