@@ -1609,7 +1609,7 @@ async function loadPublicFeed({ force = false } = {}) {
   if (__feedInFlight && !force) return __feedInFlight;
 
   const mySeq = ++__feedSeq;
-  container.innerHTML = `<div style="font-size:13px;color:#666;">Chargement du feed...</div>`;
+  container.innerHTML = `<div style="font-size:13px;color:#666;">Feed loading...</div>`;
 
   const commit = (html) => {
     if (mySeq !== __feedSeq) return;
@@ -1644,7 +1644,7 @@ async function loadPublicFeed({ force = false } = {}) {
       }
 
       if (!data || data.length === 0) {
-        commit(`<div style="font-size:13px;color:#666;">Aucune séance publique pour l’instant.</div>`);
+        commit(`<div style="font-size:13px;color:#666;">No public sessions yet.</div>`);
         return;
       }
 
@@ -1658,7 +1658,7 @@ async function loadPublicFeed({ force = false } = {}) {
       );
 
     } catch (e) {
-      commit(`<div style="font-size:13px;color:#a00;">Feed indisponible (${escapeHtml(e?.message || String(e))})</div>`);
+      commit(`<div style="font-size:13px;color:#a00;">Feed unavailable (${escapeHtml(e?.message || String(e))})</div>`);
     } finally {
       if (mySeq === __feedSeq) __feedInFlight = null;
     }
