@@ -1571,22 +1571,37 @@ function renderFeedItem(s, currentUserId) {
   const canDelete = currentUserId && s.user_id === currentUserId;
 
   return `
-    <div style="background:#f5f5f5;border:1px solid #eee;border-radius:12px;padding:12px;">
-      <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;">
-        <strong>${escapeHtml(s.username)}${trophy}</strong>
-        <span style="font-size:12px;color:#666;">${escapeHtml(dateLabel)}</span>
+    <div style="
+      background: linear-gradient(135deg, #fffefb 0%, #fdfcf9 100%);
+      border: 1px solid #e8e4dc;
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    " 
+    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)';"
+    onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)';">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:6px;">
+        <strong style="font-size:14px;font-weight:600;color:#1a1a1a;letter-spacing:-0.01em;">${escapeHtml(s.username)}${trophy}</strong>
+        <span style="font-size:11px;color:#888;font-weight:500;">${escapeHtml(dateLabel)}</span>
       </div>
 
-      <div style="font-size:12px;color:#666;margin-top:4px;">
+      <div style="font-size:11px;color:#666;margin-top:2px;margin-bottom:10px;font-weight:500;">
         Duration: ${escapeHtml(String(s.payload?.duration || ""))} min
       </div>
 
-      <ul style="margin:8px 0 0;padding-left:18px;font-size:13px;">
-        ${exList || "<li>(empty session)</li>"}
+      <ul style="margin:0;padding-left:20px;font-size:12px;line-height:1.6;color:#333;">
+        ${exList || "<li style='color:#999;'>(empty session)</li>"}
       </ul>
 
       ${canDelete ? `
-        <button class="delete-session-btn" type="button" onclick="deleteSessionByDate('${s.session_date}')">
+        <button class="delete-session-btn" type="button" onclick="deleteSessionByDate('${s.session_date}')" style="
+          margin-top:12px;
+          padding:6px 12px;
+          font-size:12px;
+          border-radius:8px;
+          transition: all 0.2s ease;
+        ">
           Delete this post (and session)
         </button>
       ` : ""}
