@@ -813,8 +813,8 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                           color:white;
                           border:none;
                           border-radius:50%;
-                          width:14px;
-                          height:14px;
+                          width:12px;
+                          height:12px;
                           font-size:10px;
                           line-height:1;
                           cursor:pointer;
@@ -823,7 +823,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                           align-items:center;
                           justify-content:center;
                         "
-                      >−</button>
+                      >×</button>
                     </span>
                   `;
                 } else {
@@ -841,8 +841,8 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                           color:white;
                           border:none;
                           border-radius:50%;
-                          width:14px;
-                          height:14px;
+                          width:12px;
+                          height:12px;
                           font-size:10px;
                           line-height:1;
                           cursor:pointer;
@@ -851,7 +851,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                           align-items:center;
                           justify-content:center;
                         "
-                      >−</button>
+                      >×</button>
                     </span>
                   `;
                 }
@@ -874,7 +874,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
             type="button"
             onclick="deleteSessionByDate('${date}')"
           >
-            Supprimer la séance du jour
+            Supprimer la séance
           </button>
         </div>
       `;
