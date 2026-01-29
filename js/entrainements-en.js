@@ -754,17 +754,21 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
               weight,
               assist,
               values: [],
-              ressenti: []
+              ressenti: [],
+              setOrigins: [] // Track origin of each set
             });
           }
 
           const entry = exoMap.get(key);
 
-          const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-            .map(v => Number(v))
-            .filter(v => Number.isFinite(v) && v > 0);
-
-          entry.values.push(...nums);
+          const sets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8];
+          sets.forEach((val, originalIdx) => {
+            const num = Number(val);
+            if (Number.isFinite(num) && num > 0) {
+              entry.values.push(num);
+              entry.setOrigins.push({ sessionId: s.id, originalIndex: originalIdx });
+            }
+          });
 
           if (ex.ressenti) entry.ressenti.push(ex.ressenti);
         });
@@ -793,6 +797,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
 
               // Display values with buttons, last button after unit
               const valuesWithButtons = ex.values.map((val, idx) => {
+                const origin = ex.setOrigins[idx];
                 const isLast = idx === ex.values.length - 1;
                 if (isLast) {
                   // Last: value + unit + button
@@ -802,7 +807,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                       <button 
                         class="remove-set-btn" 
                         type="button"
-                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        onclick="removeSetFromHistory('${origin.sessionId}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${origin.originalIndex})"
                         title="Delete this set"
                         style="
                           background:#e57373;
@@ -830,7 +835,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                       <button 
                         class="remove-set-btn" 
                         type="button"
-                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        onclick="removeSetFromHistory('${origin.sessionId}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${origin.originalIndex})"
                         title="Delete this set"
                         style="
                           background:#e57373;
@@ -905,90 +910,82 @@ async function deleteSessionByDate(date) {
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
-async function removeSetFromHistory(date, exerciseName, weight, assist, setIndex) {
+async function removeSetFromHistory(sessionId, exerciseName, weight, assist, originalIndex) {
   const info = document.getElementById("session-save-info");
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
 
   info && (info.textContent = "⏳ Deleting...");
 
-  // 1) Fetch all sessions for this day
-  const { data: sessions, error: fetchError } = await supabaseClient
+  // 1) Fetch the specific session
+  const { data: session, error: fetchError } = await supabaseClient
     .from("workout_sessions")
     .select("*")
+    .eq("id", sessionId)
     .eq("user_id", user.id)
-    .eq("session_date", date);
+    .single();
 
-  if (fetchError || !sessions?.length) {
+  if (fetchError || !session) {
     console.error(fetchError);
     info && (info.textContent = "❌ Fetch error");
     return;
   }
 
-  // 2) Browse and modify
+  // 2) Find and modify the exercise
+  const exercises = session.payload?.exercises || [];
   let removed = false;
+  
+  for (const ex of exercises) {
+    if (ex.name !== exerciseName) continue;
+    if (Number(ex.weight || 0) !== Number(weight)) continue;
+    if (Number(ex.assist || 0) !== Number(assist)) continue;
 
-  for (const session of sessions) {
-    const exercises = session.payload?.exercises || [];
-    
-    for (const ex of exercises) {
-      if (ex.name !== exerciseName) continue;
-      if (Number(ex.weight || 0) !== Number(weight)) continue;
-      if (Number(ex.assist || 0) !== Number(assist)) continue;
+    // Collect all sets
+    const allSets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .map(v => v !== "" && v !== null && v !== undefined ? v : null);
 
-      // Collect all sets
-      const allSets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-        .map(v => v !== "" && v !== null && v !== undefined ? v : null);
+    // Check that the index exists and contains a value
+    if (originalIndex >= 0 && originalIndex < allSets.length && allSets[originalIndex] !== null) {
+      // Delete directly at the original index
+      allSets[originalIndex] = null;
 
-      // Find non-empty values
-      const nonEmptyIndices = [];
-      allSets.forEach((val, idx) => {
-        if (val !== null) nonEmptyIndices.push(idx);
-      });
-
-      // If the index to delete exists
-      if (setIndex < nonEmptyIndices.length) {
-        const realIndex = nonEmptyIndices[setIndex];
-        allSets[realIndex] = null;
-
-        // Compact: move remaining values to the beginning
-        const compacted = allSets.filter(v => v !== null);
-        
-        // If no sets remain, delete the exercise completely
-        if (compacted.length === 0) {
-          const exIndex = exercises.indexOf(ex);
-          if (exIndex > -1) {
-            exercises.splice(exIndex, 1);
-          }
-        } else {
-          // Otherwise, update the sets
-          [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8] = 
-            [...compacted, "", "", "", "", "", "", "", ""].slice(0, 8);
+      // Compact: move remaining values to the beginning
+      const compacted = allSets.filter(v => v !== null);
+      
+      // If no sets remain, delete the exercise completely
+      if (compacted.length === 0) {
+        const exIndex = exercises.indexOf(ex);
+        if (exIndex > -1) {
+          exercises.splice(exIndex, 1);
         }
-
-        removed = true;
-        break;
+      } else {
+        // Otherwise, update the sets
+        [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8] = 
+          [...compacted, "", "", "", "", "", "", "", ""].slice(0, 8);
       }
+
+      removed = true;
+      break;
     }
+  }
 
-    if (removed) {
-      // 3) Save modified session
-      const { error: updateError } = await supabaseClient
-        .from("workout_sessions")
-        .update({ payload: session.payload })
-        .eq("id", session.id);
+  if (removed) {
+    // 3) Save modified session
+    const { error: updateError } = await supabaseClient
+      .from("workout_sessions")
+      .update({ payload: session.payload })
+      .eq("id", session.id);
 
-      if (updateError) {
-        console.error(updateError);
-        info && (info.textContent = "❌ Update error");
-        return;
-      }
-
-      info && (info.textContent = "✅ Set deleted");
-      delete window.__sessionsCache;
-      scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    if (updateError) {
+      console.error(updateError);
+      info && (info.textContent = "❌ Update error");
       return;
     }
+
+    info && (info.textContent = "✅ Set deleted");
+    delete window.__sessionsCache;
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    return;
   }
 
   info && (info.textContent = "⚠️ Set not found");

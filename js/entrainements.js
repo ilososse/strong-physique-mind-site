@@ -757,17 +757,21 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
               weight,
               assist,
               values: [],
-              ressenti: []
+              ressenti: [],
+              setOrigins: [] // Garder trace de l'origine de chaque set
             });
           }
 
           const entry = exoMap.get(key);
 
-          const nums = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-            .map(v => Number(v))
-            .filter(v => Number.isFinite(v) && v > 0);
-
-          entry.values.push(...nums);
+          const sets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8];
+          sets.forEach((val, originalIdx) => {
+            const num = Number(val);
+            if (Number.isFinite(num) && num > 0) {
+              entry.values.push(num);
+              entry.setOrigins.push({ sessionId: s.id, originalIndex: originalIdx });
+            }
+          });
 
           if (ex.ressenti) entry.ressenti.push(ex.ressenti);
         });
@@ -797,6 +801,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
 
               // Afficher les valeurs avec boutons, dernier bouton après l'unité
               const valuesWithButtons = ex.values.map((val, idx) => {
+                const origin = ex.setOrigins[idx];
                 const isLast = idx === ex.values.length - 1;
                 if (isLast) {
                   // Dernier: valeur + unité + bouton
@@ -806,7 +811,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                       <button 
                         class="remove-set-btn" 
                         type="button"
-                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        onclick="removeSetFromHistory('${origin.sessionId}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${origin.originalIndex})"
                         title="Supprimer cette série"
                         style="
                           background:#e57373;
@@ -834,7 +839,7 @@ async function renderStructuredSessionsHistory({ useCache = false } = {}) {
                       <button 
                         class="remove-set-btn" 
                         type="button"
-                        onclick="removeSetFromHistory('${date}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${idx})"
+                        onclick="removeSetFromHistory('${origin.sessionId}', '${escapeHtml(ex.name)}', ${ex.weight}, ${ex.assist}, ${origin.originalIndex})"
                         title="Supprimer cette série"
                         style="
                           background:#e57373;
@@ -909,90 +914,82 @@ async function deleteSessionByDate(date) {
   scheduleUIRefresh({ forceSessions: true, forceFeed: true });
 }
 
-async function removeSetFromHistory(date, exerciseName, weight, assist, setIndex) {
+async function removeSetFromHistory(sessionId, exerciseName, weight, assist, originalIndex) {
   const info = document.getElementById("session-save-info");
   const user = await getAuthedUserOrWarn(info);
   if (!user) return;
 
   info && (info.textContent = "⏳ Suppression en cours...");
 
-  // 1) Récupérer toutes les sessions de ce jour
-  const { data: sessions, error: fetchError } = await supabaseClient
+  // 1) Récupérer la session spécifique
+  const { data: session, error: fetchError } = await supabaseClient
     .from("workout_sessions")
     .select("*")
+    .eq("id", sessionId)
     .eq("user_id", user.id)
-    .eq("session_date", date);
+    .single();
 
-  if (fetchError || !sessions?.length) {
+  if (fetchError || !session) {
     console.error(fetchError);
     info && (info.textContent = "❌ Erreur récupération");
     return;
   }
 
-  // 2) Parcourir et modifier
+  // 2) Trouver et modifier l'exercice
+  const exercises = session.payload?.exercises || [];
   let removed = false;
+  
+  for (const ex of exercises) {
+    if (ex.name !== exerciseName) continue;
+    if (Number(ex.weight || 0) !== Number(weight)) continue;
+    if (Number(ex.assist || 0) !== Number(assist)) continue;
 
-  for (const session of sessions) {
-    const exercises = session.payload?.exercises || [];
-    
-    for (const ex of exercises) {
-      if (ex.name !== exerciseName) continue;
-      if (Number(ex.weight || 0) !== Number(weight)) continue;
-      if (Number(ex.assist || 0) !== Number(assist)) continue;
+    // Collecter toutes les séries
+    const allSets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
+      .map(v => v !== "" && v !== null && v !== undefined ? v : null);
 
-      // Collecter toutes les séries
-      const allSets = [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8]
-        .map(v => v !== "" && v !== null && v !== undefined ? v : null);
+    // Vérifier que l'index existe et contient une valeur
+    if (originalIndex >= 0 && originalIndex < allSets.length && allSets[originalIndex] !== null) {
+      // Supprimer directement à l'index original
+      allSets[originalIndex] = null;
 
-      // Trouver les valeurs non vides
-      const nonEmptyIndices = [];
-      allSets.forEach((val, idx) => {
-        if (val !== null) nonEmptyIndices.push(idx);
-      });
-
-      // Si l'index à supprimer existe
-      if (setIndex < nonEmptyIndices.length) {
-        const realIndex = nonEmptyIndices[setIndex];
-        allSets[realIndex] = null;
-
-        // Compacter: déplacer les valeurs restantes vers le début
-        const compacted = allSets.filter(v => v !== null);
-        
-        // Si plus aucune série, supprimer l'exercice complètement
-        if (compacted.length === 0) {
-          const exIndex = exercises.indexOf(ex);
-          if (exIndex > -1) {
-            exercises.splice(exIndex, 1);
-          }
-        } else {
-          // Sinon, mettre à jour les séries
-          [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8] = 
-            [...compacted, "", "", "", "", "", "", "", ""].slice(0, 8);
+      // Compacter: déplacer les valeurs restantes vers le début
+      const compacted = allSets.filter(v => v !== null);
+      
+      // Si plus aucune série, supprimer l'exercice complètement
+      if (compacted.length === 0) {
+        const exIndex = exercises.indexOf(ex);
+        if (exIndex > -1) {
+          exercises.splice(exIndex, 1);
         }
-
-        removed = true;
-        break;
+      } else {
+        // Sinon, mettre à jour les séries
+        [ex.s1, ex.s2, ex.s3, ex.s4, ex.s5, ex.s6, ex.s7, ex.s8] = 
+          [...compacted, "", "", "", "", "", "", "", ""].slice(0, 8);
       }
+
+      removed = true;
+      break;
     }
+  }
 
-    if (removed) {
-      // 3) Sauvegarder la session modifiée
-      const { error: updateError } = await supabaseClient
-        .from("workout_sessions")
-        .update({ payload: session.payload })
-        .eq("id", session.id);
+  if (removed) {
+    // 3) Sauvegarder la session modifiée
+    const { error: updateError } = await supabaseClient
+      .from("workout_sessions")
+      .update({ payload: session.payload })
+      .eq("id", session.id);
 
-      if (updateError) {
-        console.error(updateError);
-        info && (info.textContent = "❌ Erreur mise à jour");
-        return;
-      }
-
-      info && (info.textContent = "✅ Série supprimée");
-      delete window.__sessionsCache;
-      scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    if (updateError) {
+      console.error(updateError);
+      info && (info.textContent = "❌ Erreur mise à jour");
       return;
     }
+
+    info && (info.textContent = "✅ Série supprimée");
+    delete window.__sessionsCache;
+    scheduleUIRefresh({ forceSessions: true, forceFeed: true });
+    return;
   }
 
   info && (info.textContent = "⚠️ Série non trouvée");
