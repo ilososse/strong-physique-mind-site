@@ -948,6 +948,101 @@ button:disabled {
   .exercise-autocomplete {
     position: relative;
   }
+
+  /* Mobile: Cacher les séries 2-8 et la colonne ressenti */
+  .session-table th:nth-child(n+5):nth-child(-n+11),
+  .session-table td:nth-child(n+5):nth-child(-n+11) {
+    display: none;
+  }
+
+  .session-table th:nth-child(12),
+  .session-table td:nth-child(12) {
+    display: none;
+  }
+
+  /* Largeur réduite pour les colonnes de séries sur mobile */
+  .session-table th:nth-child(4),
+  .session-table td:nth-child(4),
+  .session-table th:nth-child(5),
+  .session-table td:nth-child(5),
+  .session-table th:nth-child(6),
+  .session-table td:nth-child(6),
+  .session-table th:nth-child(7),
+  .session-table td:nth-child(7),
+  .session-table th:nth-child(8),
+  .session-table td:nth-child(8),
+  .session-table th:nth-child(9),
+  .session-table td:nth-child(9),
+  .session-table th:nth-child(10),
+  .session-table td:nth-child(10),
+  .session-table th:nth-child(11),
+  .session-table td:nth-child(11) {
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+  }
+
+  /* Largeur réduite pour Lest et Assist sur mobile (2 chiffres) */
+  .session-table th:nth-child(2),
+  .session-table td:nth-child(2),
+  .session-table th:nth-child(3),
+  .session-table td:nth-child(3) {
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+  }
+
+  /* Plus d'espace pour la colonne Exercice */
+  .session-table th:nth-child(1),
+  .session-table td:nth-child(1) {
+    min-width: 120px;
+  }
+
+  /* Afficher la colonne avec le header vide pour le bouton + */
+  .session-table th.add-set-header {
+    display: table-cell !important;
+    width: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    padding: 6px 2px;
+  }
+
+  /* Ajouter une colonne pour le bouton + */
+  .session-table td.add-set-cell {
+    display: table-cell !important;
+    width: 40px;
+    padding: 6px 2px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .add-set-btn {
+    background: transparent;
+    color: #666;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    font-weight: normal;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+
+  .add-set-btn:hover {
+    background: #f5f5f5;
+    color: #333;
+    border-color: #999;
+  }
+
+  .add-set-btn:active {
+    background: #e8e8e8;
+  }
 }
 
 /* Items communs pour toutes les dropdown */

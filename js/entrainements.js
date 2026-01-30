@@ -429,6 +429,7 @@ const scheduleUIRefresh = (() => {
 
 function createExerciseRow(data = {}) {
   const tr = document.createElement("tr");
+  const isMobile = window.innerWidth <= 768;
 
   tr.innerHTML = `
     <td class="ex-input-container">
@@ -467,10 +468,20 @@ function createExerciseRow(data = {}) {
       >
     </td>
 
+    <td class="add-set-cell" style="display: none;">
+      <button class="add-set-btn" type="button" title="Ajouter une série">+</button>
+    </td>
+
     <td>
       <button class="remove-row-btn" type="button">×</button>
     </td>
   `;
+
+  // Afficher le bouton + sur mobile
+  if (isMobile) {
+    const addSetCell = tr.querySelector('.add-set-cell');
+    if (addSetCell) addSetCell.style.display = 'table-cell';
+  }
 
   const input = tr.querySelector(".ex-name");
   const removeBtn = tr.querySelector(".remove-row-btn");
@@ -563,6 +574,59 @@ function createExerciseRow(data = {}) {
       dropdown.style.display = "none";
     }
   });
+
+  /* -------------------------
+     BOUTON + POUR AJOUTER UNE SÉRIE (Mobile)
+  -------------------------- */
+
+  const addSetBtn = tr.querySelector(".add-set-btn");
+  if (addSetBtn) {
+    addSetBtn.addEventListener("click", () => {
+      const table = tr.closest('table');
+      if (!table) return;
+
+      const thead = table.querySelector('thead tr');
+      if (!thead) return;
+
+      // Trouver la prochaine série cachée à afficher
+      const seriesCells = [
+        { td: tr.querySelector("td:nth-child(5)"), th: thead.querySelector("th:nth-child(5)") },  // s2
+        { td: tr.querySelector("td:nth-child(6)"), th: thead.querySelector("th:nth-child(6)") },  // s3
+        { td: tr.querySelector("td:nth-child(7)"), th: thead.querySelector("th:nth-child(7)") },  // s4
+        { td: tr.querySelector("td:nth-child(8)"), th: thead.querySelector("th:nth-child(8)") },  // s5
+        { td: tr.querySelector("td:nth-child(9)"), th: thead.querySelector("th:nth-child(9)") },  // s6
+        { td: tr.querySelector("td:nth-child(10)"), th: thead.querySelector("th:nth-child(10)") }, // s7
+        { td: tr.querySelector("td:nth-child(11)"), th: thead.querySelector("th:nth-child(11)") }  // s8
+      ];
+
+      // Trouver la première série cachée et l'afficher (avec son en-tête)
+      for (const pair of seriesCells) {
+        if (pair.td && window.getComputedStyle(pair.td).display === "none") {
+          pair.td.style.display = "table-cell";
+          if (pair.th) pair.th.style.display = "table-cell";
+          
+          // Focus sur l'input de cette série
+          const input = pair.td.querySelector("input");
+          if (input) {
+            setTimeout(() => input.focus(), 100);
+          }
+          
+          break;
+        }
+      }
+
+      // Vérifier si toutes les séries sont maintenant visibles
+      const allVisible = seriesCells.every(pair => 
+        pair.td && window.getComputedStyle(pair.td).display !== "none"
+      );
+
+      // Cacher le bouton + si toutes les séries sont visibles
+      if (allVisible) {
+        const addSetCell = tr.querySelector(".add-set-cell");
+        if (addSetCell) addSetCell.style.display = "none";
+      }
+    });
+  }
 
   /* -------------------------
      SUPPRESSION DE LIGNE
