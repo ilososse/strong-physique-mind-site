@@ -1541,7 +1541,6 @@ async function getOrCreateUsername(inputUsername) {
 async function initUsernameUI() {
   const input = document.getElementById("public-username");
   const saveBtn = document.getElementById("save-username-btn");
-  const usernameBlock = document.getElementById("username-block");
   if (!input) return;
 
   // Default state: locked
@@ -1550,9 +1549,6 @@ async function initUsernameUI() {
   input.title = "Log in to set your username";
   if (saveBtn) {
     saveBtn.disabled = true;
-  }
-  if (usernameBlock) {
-    usernameBlock.style.display = "none";
   }
 
   const { data: auth } = await supabaseClient.auth.getUser();
@@ -1575,17 +1571,17 @@ async function initUsernameUI() {
     return;
   }
 
-  // 🔒 Username already set → hide the block
+  // 🔒 Username already set
   if (profile?.username) {
-    if (usernameBlock) {
-      usernameBlock.style.display = "none";
+    input.value = profile.username;
+    input.disabled = true;
+    input.title = "Username is permanent";
+    if (saveBtn) {
+      saveBtn.disabled = true;
     }
   } 
-  // ✅ Logged in but no username yet → show the block
+  // ✅ Logged in but no username yet
   else {
-    if (usernameBlock) {
-      usernameBlock.style.display = "flex";
-    }
     input.disabled = false;
     input.placeholder = "e.g.: cali_ambition";
     input.title = "Choose your username (one time only)";

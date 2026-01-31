@@ -1545,7 +1545,6 @@ async function getOrCreateUsername(inputUsername) {
 async function initUsernameUI() {
   const input = document.getElementById("public-username");
   const saveBtn = document.getElementById("save-username-btn");
-  const usernameBlock = document.getElementById("username-block");
   if (!input) return;
 
   // état par défaut : verrouillé
@@ -1554,9 +1553,6 @@ async function initUsernameUI() {
   input.title = "Connecte-toi pour définir ton pseudo";
   if (saveBtn) {
     saveBtn.disabled = true;
-  }
-  if (usernameBlock) {
-    usernameBlock.style.display = "none";
   }
 
   const { data: auth } = await supabaseClient.auth.getUser();
@@ -1579,17 +1575,17 @@ async function initUsernameUI() {
     return;
   }
 
-  // 🔒 pseudo déjà défini → cacher le bloc
+  // 🔒 pseudo déjà défini
   if (profile?.username) {
-    if (usernameBlock) {
-      usernameBlock.style.display = "none";
+    input.value = profile.username;
+    input.disabled = true;
+    input.title = "Pseudo définitif";
+    if (saveBtn) {
+      saveBtn.disabled = true;
     }
   } 
-  // ✅ connecté mais pas encore de pseudo → afficher le bloc
+  // ✅ connecté mais pas encore de pseudo
   else {
-    if (usernameBlock) {
-      usernameBlock.style.display = "flex";
-    }
     input.disabled = false;
     input.placeholder = "ex: cali_ambition";
     input.title = "Choisis ton pseudo (une seule fois)";
