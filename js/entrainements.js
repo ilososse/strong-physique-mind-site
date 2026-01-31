@@ -1544,12 +1544,16 @@ async function getOrCreateUsername(inputUsername) {
 
 async function initUsernameUI() {
   const input = document.getElementById("public-username");
+  const saveBtn = document.getElementById("save-username-btn");
   if (!input) return;
 
   // état par défaut : verrouillé
   input.disabled = true;
   input.value = "";
   input.title = "Connecte-toi pour définir ton pseudo";
+  if (saveBtn) {
+    saveBtn.disabled = true;
+  }
 
   const { data: auth } = await supabaseClient.auth.getUser();
   const user = auth?.user;
@@ -1576,12 +1580,18 @@ async function initUsernameUI() {
     input.value = profile.username;
     input.disabled = true;
     input.title = "Pseudo définitif";
+    if (saveBtn) {
+      saveBtn.disabled = true;
+    }
   } 
   // ✅ connecté mais pas encore de pseudo
   else {
     input.disabled = false;
     input.placeholder = "ex: cali_ambition";
     input.title = "Choisis ton pseudo (une seule fois)";
+    if (saveBtn) {
+      saveBtn.disabled = false;
+    }
   }
 }
 
