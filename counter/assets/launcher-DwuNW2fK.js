@@ -3894,7 +3894,7 @@ void main() {
       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
     </svg>`,t=this.I18N[this.lang].downloadVideo||"Download video";this.downloadVideoBtn.innerHTML=e+t,this.downloadVideoBtn.style.display="block"}async _downloadVideo(){var a;if(!this.recordedVideoBlob)return;const e=((a=this.exercise)==null?void 0:a.name)||"workout",t=new Date().toISOString().slice(0,19).replace(/:/g,"-"),n=this.recordedMimeType==="video/mp4"?"mp4":"webm",s=`${e}_${t}.${n}`;if(qn&&navigator.share&&navigator.canShare)try{const l=new File([this.recordedVideoBlob],s,{type:this.recordedMimeType});if(navigator.canShare({files:[l]})){await navigator.share({files:[l],title:e,text:this.I18N[this.lang].downloadVideo||"Download video"}),console.log("[recording] Video shared successfully");return}}catch(l){console.log("[recording] Share failed or cancelled:",l)}const r=URL.createObjectURL(this.recordedVideoBlob),o=document.createElement("a");o.style.display="none",o.href=r,o.download=s,document.body.appendChild(o),o.click(),setTimeout(()=>{document.body.removeChild(o),URL.revokeObjectURL(r)},100),console.log("[recording] Video downloaded")}_displayQualityScore(e,t){const n=this._calculateGlobalScore(t),s=document.createElement("div");s.id="qualityScoreContainer",s.style.cssText=`
       position: fixed;
-      bottom: 120px;
+      bottom: 130px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999;
@@ -4151,36 +4151,35 @@ void main() {
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       color: white;
       animation: scaleIn 0.4s ease;
-    `,t.innerHTML=`
+    `;const n=document.documentElement.lang==="en";t.innerHTML=`
       <div style="font-size: 50px; margin-bottom: 18px;">🔍</div>
       <h2 style="font-size: 24px; margin-bottom: 14px; font-weight: 700;">
-        Analyse technique avancée
+        ${n?"Advanced Technical Analysis":"Analyse technique avancée"}
       </h2>
       <p style="font-size: 15px; line-height: 1.6; margin-bottom: 22px; opacity: 0.95;">
-        Débloquez le <strong>détail complet</strong> de votre score de qualité :
+        ${n?"Unlock the <strong>complete breakdown</strong> of your quality score:":"Débloquez le <strong>détail complet</strong> de votre score de qualité :"}
       </p>
 
       <div style="background: rgba(255,255,255,0.1); padding: 18px; border-radius: 12px; margin-bottom: 22px;">
         <ul style="text-align: left; list-style: none; padding: 0; font-size: 14px; line-height: 1.9;">
-          <li>🎯 <strong>Alignement</strong> du corps (shoulders/hips/ankles)</li>
-          <li>📐 <strong>Angles articulaires</strong> (coudes, genoux)</li>
-          <li>⚖️ <strong>Amplitude</strong> de mouvement (ROM)</li>
-          <li style="opacity: 0.7;">⏱️ <strong>Tempo</strong> et contrôle (très prochainement)</li>
-          <li style="opacity: 0.7;">🎭 <strong>Stabilité</strong> (très prochainement)</li>
-          <li style="opacity: 0.7;">📊 <strong>Progression</strong> entre sessions (très prochainement)</li>
+          <li>✅ <strong>${n?"Body alignment":"Alignement du corps"}</strong> ${n?"(shoulders/hips/ankles)":"(épaules/hanches/chevilles)"}</li>
+          <li>✅ <strong>${n?"Joint angles":"Angles articulaires"}</strong> ${n?"(elbows, knees)":"(coudes, genoux)"}</li>
+          <li>✅ <strong>${n?"Range of motion":"Amplitude de mouvement"}</strong> (ROM)</li>
+          <li>✅ <strong>${n?"Verticality & posture":"Verticalité & posture"}</strong></li>
+          <li>✅ <strong>${n?"Advanced session tracking":"Suivi avancé des séances"}</strong></li>
+          <li>✅ <strong>${n?"Unlimited history":"Historique illimité"}</strong></li>
         </ul>
       </div>
 
       <p style="font-size: 13px; opacity: 0.85; margin-bottom: 20px;">
-        Comprenez précisément ce qui impacte votre score<br>
-        et progressez plus rapidement.
+        ${n?"Understand exactly what impacts your score<br>and progress faster.":"Comprenez précisément ce qui impacte votre score<br>et progressez plus rapidement."}
       </p>
 
       <div style="font-size: 28px; font-weight: 800; margin-bottom: 6px; color: #ffd700;">
         14,99€
       </div>
       <p style="font-size: 12px; opacity: 0.8; margin-bottom: 20px;">
-        Paiement unique • Accès à vie
+        ${n?"One-time payment • Lifetime access":"Paiement unique • Accès à vie"}
       </p>
 
       <button id="upgradeDetailsBtn" style="
@@ -4197,7 +4196,7 @@ void main() {
         box-shadow: 0 6px 18px rgba(245, 87, 108, 0.4);
         margin-bottom: 12px;
       ">
-        Débloquer l'analyse avancée
+        ${n?"Unlock Advanced Analysis":"Débloquer l'analyse avancée"}
       </button>
 
       <button id="closeDetailsPaywall" style="
@@ -4211,9 +4210,9 @@ void main() {
         font-size: 13px;
         transition: all 0.2s ease;
       ">
-        Plus tard
+        ${n?"Later":"Plus tard"}
       </button>
-    `,e.appendChild(t),document.body.appendChild(e);const n=t.querySelector("#upgradeDetailsBtn");n.addEventListener("click",()=>{this._handleUpgrade("quality_details")}),n.addEventListener("mouseenter",()=>{n.style.transform="translateY(-2px)",n.style.boxShadow="0 8px 22px rgba(245, 87, 108, 0.6)"}),n.addEventListener("mouseleave",()=>{n.style.transform="translateY(0)",n.style.boxShadow="0 6px 18px rgba(245, 87, 108, 0.4)"});const s=t.querySelector("#closeDetailsPaywall");s.addEventListener("click",()=>{e.remove()}),s.addEventListener("mouseenter",()=>{s.style.background="rgba(255,255,255,0.05)",s.style.borderColor="rgba(255,255,255,0.4)"}),s.addEventListener("mouseleave",()=>{s.style.background="transparent",s.style.borderColor="rgba(255,255,255,0.25)"}),e.addEventListener("click",r=>{r.target===e&&e.remove()})}showUpgradeModal(e="general"){const t=document.createElement("div");t.id="upgradeModal",t.style.cssText=`
+    `,e.appendChild(t),document.body.appendChild(e);const s=t.querySelector("#upgradeDetailsBtn");s.addEventListener("click",()=>{this._handleUpgrade("quality_details")}),s.addEventListener("mouseenter",()=>{s.style.transform="translateY(-2px)",s.style.boxShadow="0 8px 22px rgba(245, 87, 108, 0.6)"}),s.addEventListener("mouseleave",()=>{s.style.transform="translateY(0)",s.style.boxShadow="0 6px 18px rgba(245, 87, 108, 0.4)"});const r=t.querySelector("#closeDetailsPaywall");r.addEventListener("click",()=>{e.remove()}),r.addEventListener("mouseenter",()=>{r.style.background="rgba(255,255,255,0.05)",r.style.borderColor="rgba(255,255,255,0.4)"}),r.addEventListener("mouseleave",()=>{r.style.background="transparent",r.style.borderColor="rgba(255,255,255,0.25)"}),e.addEventListener("click",o=>{o.target===e&&e.remove()})}showUpgradeModal(e="general"){const t=document.createElement("div");t.id="upgradeModal",t.style.cssText=`
       position: fixed;
       top: 0;
       left: 0;
@@ -4236,21 +4235,21 @@ void main() {
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
       color: white;
       animation: scaleIn 0.3s ease;
-    `;const s=this.MAX_FREE_SESSIONS-this.sessionCount;n.innerHTML=`
+    `;const s=this.MAX_FREE_SESSIONS-this.sessionCount,r=document.documentElement.lang==="en";n.innerHTML=`
       <div style="font-size: 45px; margin-bottom: 14px;">⭐</div>
       <h2 style="font-size: 22px; margin-bottom: 12px; font-weight: 700;">
-        Passez Premium
+        ${r?"Go Premium":"Passez Premium"}
       </h2>
       <p style="font-size: 14px; line-height: 1.5; margin-bottom: 18px; opacity: 0.92;">
-        ${s>0?`Plus que <strong>${s} sessions</strong> gratuites restantes.`:"Limite gratuite atteinte."}<br>
-        Débloquez l'historique illimité et l'analyse avancée !
+        ${s>0?r?`Only <strong>${s} free sessions</strong> left.`:`Plus que <strong>${s} sessions</strong> gratuites restantes.`:r?"Free limit reached.":"Limite gratuite atteinte."}<br>
+        ${r?"Unlock unlimited history & advanced analysis!":"Débloquez l'historique illimité et l'analyse avancée !"}
       </p>
 
       <div style="font-size: 26px; font-weight: 800; margin-bottom: 6px; color: #ffd700;">
         14,99€
       </div>
       <p style="font-size: 12px; opacity: 0.75; margin-bottom: 18px;">
-        Paiement unique • Accès à vie
+        ${r?"One-time payment • Lifetime access":"Paiement unique • Accès à vie"}
       </p>
 
       <button id="upgradeModalBtn" style="
@@ -4267,7 +4266,7 @@ void main() {
         box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
         margin-bottom: 10px;
       ">
-        Débloquer Premium
+        ${r?"Unlock Premium":"Débloquer Premium"}
       </button>
 
       <button id="closeModalBtn" style="
@@ -4282,9 +4281,9 @@ void main() {
         cursor: pointer;
         transition: all 0.2s ease;
       ">
-        ${s>0?"Continuer en gratuit":"Fermer"}
+        ${s>0?r?"Continue with free":"Continuer en gratuit":r?"Close":"Fermer"}
       </button>
-    `,t.appendChild(n),document.body.appendChild(t),n.querySelector("#upgradeModalBtn").addEventListener("click",()=>{this._handleUpgrade(e)}),n.querySelector("#closeModalBtn").addEventListener("click",()=>{t.remove()}),t.addEventListener("click",r=>{r.target===t&&t.remove()})}async _handleUpgrade(e="unknown"){const t="https://buy.stripe.com/aFaeV5bnu4gE5rC6BN83C00";console.log(`[Premium] Upgrade clicked from: ${e}`),typeof gtag<"u"&&gtag("event","upgrade_clicked",{source:e,session_count:this.sessionCount});const{data:{user:n}}=await this.supabase.auth.getUser();let s=t;if(n){const o=s.includes("?")?"&":"?";s=`${s}${o}client_reference_id=${n.id}`}console.log(`[Premium] Redirecting to: ${s}`);const r=document.createElement("a");r.href=s,r.target="_blank",r.rel="noopener noreferrer",r.style.display="none",document.body.appendChild(r),r.click(),setTimeout(()=>document.body.removeChild(r),100),n&&this._startPaymentVerification()}_startPaymentVerification(){console.log("[Premium] Starting payment verification...");let e=0;const t=20,n=setInterval(async()=>{e++,await this._checkPremiumStatus(),this.isPremium?(console.log("🎉 [Premium] Payment verified! Premium activated!"),clearInterval(n),this._showSuccessMessage(),setTimeout(()=>{window.location.reload()},2e3)):e>=t&&(console.log("[Premium] Payment verification timeout"),clearInterval(n))},6e3)}_showSuccessMessage(){const e=document.createElement("div");e.style.cssText=`
+    `,t.appendChild(n),document.body.appendChild(t),n.querySelector("#upgradeModalBtn").addEventListener("click",()=>{this._handleUpgrade(e)}),n.querySelector("#closeModalBtn").addEventListener("click",()=>{t.remove()}),t.addEventListener("click",o=>{o.target===t&&t.remove()})}async _handleUpgrade(e="unknown"){const t="https://buy.stripe.com/aFaeV5bnu4gE5rC6BN83C00";console.log(`[Premium] Upgrade clicked from: ${e}`),typeof gtag<"u"&&gtag("event","upgrade_clicked",{source:e,session_count:this.sessionCount});const{data:{user:n}}=await this.supabase.auth.getUser();let s=t;if(n){const o=s.includes("?")?"&":"?";s=`${s}${o}client_reference_id=${n.id}`}console.log(`[Premium] Redirecting to: ${s}`);const r=document.createElement("a");r.href=s,r.target="_blank",r.rel="noopener noreferrer",r.style.display="none",document.body.appendChild(r),r.click(),setTimeout(()=>document.body.removeChild(r),100),n&&this._startPaymentVerification()}_startPaymentVerification(){console.log("[Premium] Starting payment verification...");let e=0;const t=20,n=setInterval(async()=>{e++,await this._checkPremiumStatus(),this.isPremium?(console.log("🎉 [Premium] Payment verified! Premium activated!"),clearInterval(n),this._showSuccessMessage(),setTimeout(()=>{window.location.reload()},2e3)):e>=t&&(console.log("[Premium] Payment verification timeout"),clearInterval(n))},6e3)}_showSuccessMessage(){const e=document.createElement("div");e.style.cssText=`
       position: fixed;
       top: 50%;
       left: 50%;
