@@ -49,7 +49,7 @@
 </header>
 
 <main>
-  <article class="article-content">
+  <div class="cgv-container">
     <h1>Programmes d'entraînement de Calisthénie par niveau</h1>
     
     <p class="intro">
@@ -59,7 +59,7 @@
 
     <section class="programs-section">
       <h2>🌱 Débutant</h2>
-      <div class="program-card">
+      <div class="program-card beginner">
         <h3>Routine full body simple</h3>
         <ul>
           <li>3 × 8–10 pompes inclinées (mains sur le sol / canapé)</li>
@@ -67,6 +67,8 @@
           <li>3 × 20 s gainage planche</li>
           <li>3 × 5-10 tractions négatives</li>
         </ul>
+        <p><strong>Fréquence :</strong> 2-3 fois par semaine</p>
+        <p><strong>Repos :</strong> 2-3 minutes entre les séries</p>
         <p>
           <strong>Objectif :</strong> apprendre les bases, sentir les mouvements, construire une première régularité
           sans écraser le système nerveux.
@@ -76,7 +78,7 @@
 
     <section class="programs-section">
       <h2>💪 Intermédiaire</h2>
-      <div class="program-card">
+      <div class="program-card intermediate">
         <h3>Routine traction / push</h3>
         <ul>
           <li>4 × 6–8 tractions strictes</li>
@@ -86,6 +88,8 @@
           <li>4 x 3-10s hold tuck planche</li>
           <li>4 x 3-7 handstand push ups si tu es tenace</li>
         </ul>
+        <p><strong>Fréquence :</strong> 3-4 fois par semaine</p>
+        <p><strong>Repos :</strong> 2-4 minutes entre les séries</p>
         <p>
           <strong>Objectif :</strong> consolider la force de base et préparer le terrain pour les skills
           (muscle-up, front lever, planche variantes plus avancées).
@@ -95,7 +99,7 @@
 
     <section class="programs-section">
       <h2>🔥 Avancé / Pro</h2>
-      <div class="program-card">
+      <div class="program-card advanced">
         <h3>Session skills & explosivité</h3>
         <ul>
           <li>Muscle-up : 5–8 séries de variations (explosives, assistées, négatives)</li>
@@ -108,6 +112,7 @@
         </ul>
         <p><strong>Fréquence :</strong> 5-6 fois par semaine (split Push/Pull/Legs)</p>
         <p><strong>Repos :</strong> 3-5 minutes entre les séries</p>
+        <p><strong>Objectif :</strong> pousser la force humaine au-delà de ses limites !</p>
       </div>
     </section>
 
@@ -131,11 +136,16 @@
       </div>
     </section>
 
-  </article>
+  </div>
 </main>
 
-<footer>
-  <p>&copy; 2026 Calisthénie & ambition. Tous droits réservés.</p>
+<footer style="text-align: center; padding: 24px; color: #666; font-size: 13px; border-top: 1px solid #ddd;">
+  <p>&copy; 2026 Calisthenics Ambition - Tous droits réservés</p>
+  <p>
+    <a href="contact.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">Contact</a> |
+    <a href="mentions-legales.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">Mentions légales</a> |
+    <a href="cgv.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">CGV</a>
+  </p>
 </footer>
 
 <style>
@@ -143,25 +153,76 @@
     background: #e8eaed;
   }
 
+  .cgv-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    line-height: 1.7;
+  }
+
+  .cgv-container h1 {
+    font-size: 32px;
+    margin-bottom: 12px;
+    color: #111;
+    text-align: center;
+  }
+
+  .cgv-container h2 {
+    font-size: 24px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    color: #111;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 8px;
+  }
+
   .programs-section {
     margin: 40px 0;
   }
 
   .program-card {
-    background: #ffffff;
-    border-left: 4px solid #4CAF50;
-    padding: 20px;
+    padding: 24px;
     margin: 20px 0;
-    border-radius: 4px;
+    border-radius: 8px;
+    border-left: 4px solid #0066cc;
+  }
+
+  .program-card.beginner {
+    background: #e8f5e9;
+    border-left-color: #4CAF50;
+  }
+
+  .program-card.intermediate {
+    background: #fff3e0;
+    border-left-color: #FF9800;
+  }
+
+  .program-card.advanced {
+    background: #ffebee;
+    border-left-color: #f44336;
   }
 
   .program-card h3 {
     color: #2c3e50;
     margin-top: 0;
+    font-size: 20px;
   }
 
   .program-card ul {
     line-height: 1.8;
+    margin-left: 20px;
+  }
+
+  .program-card li {
+    margin-bottom: 8px;
+  }
+
+  .program-card p {
+    margin-bottom: 12px;
+    color: #555;
   }
 
   .tips-box {
@@ -180,6 +241,22 @@
     font-size: 1.1em;
     color: #555;
     margin-bottom: 30px;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .cgv-container {
+      padding: 24px;
+      margin: 20px 16px;
+    }
+
+    .cgv-container h1 {
+      font-size: 24px;
+    }
+
+    .cgv-container h2 {
+      font-size: 20px;
+    }
   }
 </style>
 

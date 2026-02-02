@@ -49,7 +49,7 @@
 </header>
 
 <main>
-  <article class="article-content">
+  <div class="cgv-container">
     <h1>Calisthenics Training Programs by Level</h1>
     
     <p class="intro">
@@ -59,7 +59,7 @@
 
     <section class="programs-section">
       <h2>🌱 Beginner</h2>
-      <div class="program-card">
+      <div class="program-card beginner">
         <h3>Simple Full Body Routine</h3>
         <ul>
           <li>3 × 8–10 incline push-ups (hands on floor / couch)</li>
@@ -67,6 +67,8 @@
           <li>3 × 20 s plank hold</li>
           <li>3 × 5-10 negative pull-ups</li>
         </ul>
+        <p><strong>Frequency:</strong> 2-3 times per week</p>
+        <p><strong>Rest:</strong> 2-3 minutes between sets</p>
         <p>
           <strong>Objective:</strong> learn the basics, feel the movements, build initial consistency
           without overwhelming the nervous system.
@@ -76,7 +78,7 @@
 
     <section class="programs-section">
       <h2>💪 Intermediate</h2>
-      <div class="program-card">
+      <div class="program-card intermediate">
         <h3>Pull / Push Routine</h3>
         <ul>
           <li>4 × 6–8 strict pull-ups</li>
@@ -86,6 +88,8 @@
           <li>4 x 3-10s tuck planche hold</li>
           <li>4 x 3-7 handstand push ups if you're determined</li>
         </ul>
+        <p><strong>Frequency:</strong> 3-4 times per week</p>
+        <p><strong>Rest:</strong> 2-4 minutes between sets</p>
         <p>
           <strong>Objective:</strong> consolidate base strength and prepare for skills
           (muscle-up, front lever, more advanced planche variations).
@@ -95,7 +99,7 @@
 
     <section class="programs-section">
       <h2>🔥 Advanced / Pro</h2>
-      <div class="program-card">
+      <div class="program-card advanced">
         <h3>Skills & Explosiveness Session</h3>
         <ul>
           <li>Muscle-up: 5–8 sets of variations (explosive, assisted, negative)</li>
@@ -108,6 +112,7 @@
         </ul>
         <p><strong>Frequency:</strong> 5-6 times per week (Push/Pull/Legs split)</p>
         <p><strong>Rest:</strong> 3-5 minutes between sets</p>
+        <p><strong>Objective:</strong> push human strength beyond its limits!</p>
       </div>
     </section>
 
@@ -131,11 +136,16 @@
       </div>
     </section>
 
-  </article>
+  </div>
 </main>
 
-<footer>
-  <p>&copy; 2026 Calisthenics & Ambition. All rights reserved.</p>
+<footer style="text-align: center; padding: 24px; color: #666; font-size: 13px; border-top: 1px solid #ddd;">
+  <p>&copy; 2026 Calisthenics Ambition - Tous droits réservés</p>
+  <p>
+    <a href="contact.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">Contact</a> |
+    <a href="mentions-legales-en.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">Legal Notice</a> |
+    <a href="cgv.html" style="color: #0066cc; text-decoration: none; margin: 0 8px;">CGV</a>
+  </p>
 </footer>
 
 <style>
@@ -143,25 +153,76 @@
     background: #e8eaed;
   }
 
+  .cgv-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    line-height: 1.7;
+  }
+
+  .cgv-container h1 {
+    font-size: 32px;
+    margin-bottom: 12px;
+    color: #111;
+    text-align: center;
+  }
+
+  .cgv-container h2 {
+    font-size: 24px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    color: #111;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 8px;
+  }
+
   .programs-section {
     margin: 40px 0;
   }
 
   .program-card {
-    background: #ffffff;
-    border-left: 4px solid #4CAF50;
-    padding: 20px;
+    padding: 24px;
     margin: 20px 0;
-    border-radius: 4px;
+    border-radius: 8px;
+    border-left: 4px solid #0066cc;
+  }
+
+  .program-card.beginner {
+    background: #e8f5e9;
+    border-left-color: #4CAF50;
+  }
+
+  .program-card.intermediate {
+    background: #fff3e0;
+    border-left-color: #FF9800;
+  }
+
+  .program-card.advanced {
+    background: #ffebee;
+    border-left-color: #f44336;
   }
 
   .program-card h3 {
     color: #2c3e50;
     margin-top: 0;
+    font-size: 20px;
   }
 
   .program-card ul {
     line-height: 1.8;
+    margin-left: 20px;
+  }
+
+  .program-card li {
+    margin-bottom: 8px;
+  }
+
+  .program-card p {
+    margin-bottom: 12px;
+    color: #555;
   }
 
   .tips-box {
@@ -180,6 +241,22 @@
     font-size: 1.1em;
     color: #555;
     margin-bottom: 30px;
+    text-align: center;
+  }
+
+  @media (max-width: 768px) {
+    .cgv-container {
+      padding: 24px;
+      margin: 20px 16px;
+    }
+
+    .cgv-container h1 {
+      font-size: 24px;
+    }
+
+    .cgv-container h2 {
+      font-size: 20px;
+    }
   }
 </style>
 
