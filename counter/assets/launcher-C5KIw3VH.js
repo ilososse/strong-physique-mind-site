@@ -3894,7 +3894,7 @@ void main() {
       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
     </svg>`,t=this.I18N[this.lang].downloadVideo||"Download video";this.downloadVideoBtn.innerHTML=e+t,this.downloadVideoBtn.style.display="block"}async _downloadVideo(){var a;if(!this.recordedVideoBlob)return;const e=((a=this.exercise)==null?void 0:a.name)||"workout",t=new Date().toISOString().slice(0,19).replace(/:/g,"-"),n=this.recordedMimeType==="video/mp4"?"mp4":"webm",s=`${e}_${t}.${n}`;if(ki&&navigator.share&&navigator.canShare)try{const l=new File([this.recordedVideoBlob],s,{type:this.recordedMimeType});if(navigator.canShare({files:[l]})){await navigator.share({files:[l],title:e,text:this.I18N[this.lang].downloadVideo||"Download video"}),console.log("[recording] Video shared successfully");return}}catch(l){console.log("[recording] Share failed or cancelled:",l)}const r=URL.createObjectURL(this.recordedVideoBlob),o=document.createElement("a");o.style.display="none",o.href=r,o.download=s,document.body.appendChild(o),o.click(),setTimeout(()=>{document.body.removeChild(o),URL.revokeObjectURL(r)},100),console.log("[recording] Video downloaded")}_displayQualityScore(e,t){const n=this._calculateGlobalScore(t),s=document.createElement("div");s.id="qualityScoreContainer",s.style.cssText=`
       position: fixed;
-      bottom: 110px;
+      bottom: 120px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999;
