@@ -1,4 +1,4 @@
-var Po=Object.defineProperty;var Do=(i,e,t)=>e in i?Po(i,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):i[e]=t;var ls=(i,e,t)=>Do(i,typeof e!="symbol"?e+"":e,t);import{s as Uo,v as De,a as Io,b as cs,c as at,d as No,e as pr,F as Fo,D as Oo,N as Bo,H as ko,f as Ho,P as zo,T as Vo,g as ri,h as gt}from"./exercises-Bp2t1PU9.js";import{FilesetResolver as Go,PoseLandmarker as Wo}from"https://esm.sh/@mediapipe/tasks-vision@0.10.14";/**
+var Po=Object.defineProperty;var Do=(i,e,t)=>e in i?Po(i,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):i[e]=t;var ls=(i,e,t)=>Do(i,typeof e!="symbol"?e+"":e,t);import{s as Uo,v as De,a as Io,b as cs,c as at,d as No,e as pr,F as Fo,D as Oo,N as Bo,H as ko,f as Ho,P as zo,T as Vo,g as ri,h as gt}from"./exercises-DeIGFFOu.js";import{FilesetResolver as Go,PoseLandmarker as Wo}from"https://esm.sh/@mediapipe/tasks-vision@0.10.14";/**
  * @license
  * Copyright 2010-2023 Three.js Authors
  * SPDX-License-Identifier: MIT
