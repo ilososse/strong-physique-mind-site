@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analyseur Vidéo - Calisthenics Ambition</title>
+  <title>Video Analyzer - Calisthenics Ambition</title>
   <style>
     * {
       margin: 0;
@@ -329,23 +329,23 @@
 </head>
 <body>
   <div class="container">
-    <h1>🎥 Analyseur Vidéo de Performance</h1>
+    <h1>🎥 Performance Video Analyzer</h1>
 
     <div style="background: #f0f4ff; padding: 20px; border-radius: 12px; margin-bottom: 30px; border-left: 4px solid #667eea;">
       <p style="margin-bottom: 10px; line-height: 1.6; color: #333;">
-        Cette application analyse vos vidéos d'exercices pour calculer le <strong>nombre de répétitions</strong> (ou <strong>durée</strong> pour les exercices statiques) et évaluer la <strong>qualité d'exécution</strong> avec une <strong>note globale de 1 à 10 détaillée par critères</strong>. Elle s'appuie sur le même modèle d'IA que le <a href="../../index.html#smart-tracker" style="color: #667eea; font-weight: 600; text-decoration: none;">Smart Calisthenics Tracker</a>.
+        This application automatically analyzes your exercise videos to calculate the <strong>number of repetitions</strong> (or <strong>duration</strong> for static exercises) and evaluate <strong>execution quality</strong> with an <strong>overall score from 1 to 10 broken down by criteria</strong>. It uses the same AI model as the <a href="../../index-en.html#smart-tracker" style="color: #667eea; font-weight: 600; text-decoration: none;">Smart Calisthenics Tracker</a>.
       </p>
       <p style="margin: 0; line-height: 1.6; color: #555; font-size: 14px;">
-        ⚠️ <strong>Important pour la planche :</strong> l'orientation de la vidéo est cruciale. Assurez-vous que les <strong>jambes soient à gauche</strong> et la <strong>tête à droite</strong> dans la vidéo pour que le modèle fonctionne correctement.
+        ⚠️ <strong>Important for planche:</strong> video orientation is crucial. Make sure your <strong>legs are on the left</strong> and your <strong>head on the right</strong> in the video for the model to work properly.
       </p>
     </div>
 
     <div class="upload-section" id="uploadSection">
       <div class="form-group">
-        <label for="exerciseSelect">Sélectionnez votre exercice :</label>
+        <label for="exerciseSelect">Select your exercise:</label>
         <select id="exerciseSelect">
-          <option value="Tractions">Tractions (Pull Ups)</option>
-          <option value="Pompes">Pompes (Push Ups)</option>
+          <option value="Tractions">Pull Ups</option>
+          <option value="Pompes">Push Ups</option>
           <option value="Dips">Dips</option>
           <option value="Handstand">Handstand</option>
           <option value="Handstand Push Up">Handstand Push Up</option>
@@ -364,12 +364,12 @@
       </div>
 
       <div class="form-group">
-        <label for="videoFile">Chargez votre vidéo :</label>
+        <label for="videoFile">Upload your video:</label>
         <input type="file" id="videoFile" accept="video/*">
       </div>
 
       <button class="upload-btn" id="analyzeBtn" disabled>
-        🚀 Analyser la vidéo
+        🚀 Analyze Video
       </button>
     </div>
 
@@ -386,24 +386,24 @@
 
     <div class="results" id="results">
       <div class="result-header">
-        <h2>📊 Résultats de l'analyse</h2>
+        <h2>📊 Analysis Results</h2>
         <div class="exercise-name" id="resultExerciseName"></div>
       </div>
 
       <div class="result-item">
-        <div class="result-label" id="resultLabel">Répétitions</div>
+        <div class="result-label" id="resultLabel">Repetitions</div>
         <div class="result-value" id="resultValue">0</div>
       </div>
 
       <div class="quality-score" id="qualityScoreSection" style="display: none;">
-        <div class="result-label">Note de qualité</div>
+        <div class="result-label">Quality Score</div>
         <div class="quality-score-value" id="qualityScoreValue">0/10</div>
         <div class="quality-details" id="qualityDetails"></div>
       </div>
 
       <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button class="btn-restart" id="reanalyzeBtn" style="flex: 1;">🔁 Analyser à nouveau</button>
-        <button class="btn-restart" id="restartBtn" style="flex: 1;">🔄 Autre vidéo</button>
+        <button class="btn-restart" id="reanalyzeBtn" style="flex: 1;">🔁 Analyze Again</button>
+        <button class="btn-restart" id="restartBtn" style="flex: 1;">🔄 New Video</button>
       </div>
     </div>
   </div>
