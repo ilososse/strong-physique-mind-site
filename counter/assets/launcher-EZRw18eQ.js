@@ -3806,16 +3806,21 @@ void main() {
       justify-content: center;
       backdrop-filter: blur(10px);
       animation: fadeIn 0.3s ease;
+      overflow-y: auto;
+      padding: 20px 0;
     `;const t=document.createElement("div");t.style.cssText=`
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 40px 35px;
       border-radius: 20px;
       max-width: 500px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       color: white;
       animation: scaleIn 0.4s ease;
+      margin: auto;
     `,t.innerHTML=`
       <div style="font-size: 60px; margin-bottom: 20px;">🎯</div>
       <h2 style="font-size: 26px; margin-bottom: 15px; font-weight: 700;">
@@ -3908,16 +3913,21 @@ void main() {
       justify-content: center;
       backdrop-filter: blur(8px);
       animation: fadeIn 0.3s ease;
+      overflow-y: auto;
+      padding: 20px 0;
     `;const t=document.createElement("div");t.style.cssText=`
       background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       padding: 35px 30px;
       border-radius: 20px;
       max-width: 480px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       color: white;
       animation: scaleIn 0.4s ease;
+      margin: auto;
     `;const n=document.documentElement.lang==="en";t.innerHTML=`
       <div style="font-size: 50px; margin-bottom: 18px;">🔍</div>
       <h2 style="font-size: 24px; margin-bottom: 14px; font-weight: 700;">
@@ -4028,16 +4038,21 @@ void main() {
       justify-content: center;
       backdrop-filter: blur(4px);
       animation: fadeIn 0.2s ease;
+      overflow-y: auto;
+      padding: 20px 0;
     `;const n=document.createElement("div");n.style.cssText=`
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 32px 28px;
       border-radius: 18px;
       max-width: 420px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       text-align: center;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
       color: white;
       animation: scaleIn 0.3s ease;
+      margin: auto;
     `;const s=this.MAX_FREE_SESSIONS-this.sessionCount,r=document.documentElement.lang==="en";n.innerHTML=`
       <div style="font-size: 45px; margin-bottom: 14px;">⭐</div>
       <h2 style="font-size: 22px; margin-bottom: 12px; font-weight: 700;">
