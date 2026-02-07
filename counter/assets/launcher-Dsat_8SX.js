@@ -4272,7 +4272,7 @@ void main() {
       text-align: center;
       margin-bottom: 10px;
       color: ${this._getScoreColor(n)};
-    `,r.textContent=`${n}/10`,s.appendChild(r);const o=document.createElement("div");o.style.cssText=`
+    `,r.textContent=`${n.toFixed(1)}/10`,s.appendChild(r);const o=document.createElement("div");o.style.cssText=`
       font-size: 13px;
       text-align: center;
       opacity: 0.8;
@@ -4288,7 +4288,7 @@ void main() {
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
-    `,l.textContent=a.viewDetails,l.addEventListener("click",()=>{this.premiumManager&&this.premiumManager.canViewQualityDetails()?this._showQualityBreakdown(e,t):this.premiumManager&&this.premiumManager.showQualityDetailsPaywall()}),l.addEventListener("mouseenter",()=>{l.style.transform="translateY(-2px)",l.style.boxShadow="0 4px 12px rgba(102, 126, 234, 0.4)"}),l.addEventListener("mouseleave",()=>{l.style.transform="translateY(0)",l.style.boxShadow="none"}),s.appendChild(l);const c=document.getElementById("qualityScoreContainer");c&&c.remove(),document.body.appendChild(s)}_calculateGlobalScore(e){let t=0,n=0;return[e.leanScore,e.trunkScore,e.alignmentScore,e.kneeHipShoulderScore,e.straightLegsScore,e.verticalityScore,e.elbowDepthScore,e.stabilityScore].forEach(r=>{r!=null&&!isNaN(r)&&(t+=r,n++)}),n===0?0:Math.round(t/n)}_showQualityBreakdown(e,t){const n=this.I18N[this.lang],s=document.createElement("div");s.id="qualityBreakdownModal",s.style.cssText=`
+    `,l.textContent=a.viewDetails,l.addEventListener("click",()=>{this.premiumManager&&this.premiumManager.canViewQualityDetails()?this._showQualityBreakdown(e,t):this.premiumManager&&this.premiumManager.showQualityDetailsPaywall()}),l.addEventListener("mouseenter",()=>{l.style.transform="translateY(-2px)",l.style.boxShadow="0 4px 12px rgba(102, 126, 234, 0.4)"}),l.addEventListener("mouseleave",()=>{l.style.transform="translateY(0)",l.style.boxShadow="none"}),s.appendChild(l);const c=document.getElementById("qualityScoreContainer");c&&c.remove(),document.body.appendChild(s)}_calculateGlobalScore(e){let t=0,n=0;return[e.leanScore,e.trunkScore,e.alignmentScore,e.kneeHipShoulderScore,e.straightLegsScore,e.verticalityScore,e.elbowDepthScore,e.stabilityScore].forEach(r=>{r!=null&&!isNaN(r)&&(t+=r,n++)}),n===0?0:Math.round(t/n*10)/10}_showQualityBreakdown(e,t){const n=this.I18N[this.lang],s=document.createElement("div");s.id="qualityBreakdownModal",s.style.cssText=`
       position: fixed;
       top: 0;
       left: 0;
